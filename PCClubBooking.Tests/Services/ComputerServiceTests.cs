@@ -16,6 +16,7 @@ public class ComputerServiceTests
     private readonly Mock<IComputerRepository> _computerRepository;
     private readonly Mock<IMapper> _mapper;
     private readonly Mock<IUnitOfWork> _unitOfWork;
+    private readonly Mock<ILogger<ComputerService>> _logger;  
     private readonly IComputerService _computerService;
 
     public ComputerServiceTests()
@@ -23,7 +24,13 @@ public class ComputerServiceTests
         _computerRepository = new Mock<IComputerRepository>();
         _mapper = new Mock<IMapper>();
         _unitOfWork = new Mock<IUnitOfWork>();
-        _computerService = new ComputerService(_mapper.Object, _computerRepository.Object, _unitOfWork.Object);
+        _logger = new Mock<ILogger<ComputerService>>();  
+
+        _computerService = new ComputerService(
+            _mapper.Object,
+            _computerRepository.Object,
+            _unitOfWork.Object,
+            _logger.Object);   
     }
 
     [Fact]

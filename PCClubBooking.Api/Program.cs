@@ -7,9 +7,12 @@ using PCClubBooking.Api.Middleware;
 using PCClubBooking.Application;
 using PCClubBooking.Infrastructure;
 using PCClubBooking.Infrastructure.Data;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, config) =>
+    config.ReadFrom.Configuration(context.Configuration));
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -59,6 +62,7 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.UseSerilogRequestLogging();
 
 using (var scope = app.Services.CreateScope())
 {

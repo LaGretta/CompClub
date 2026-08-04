@@ -18,20 +18,23 @@ public class BookingServiceTests
     private readonly Mock<IComputerRepository> _computerRepository;
     private readonly Mock<IMapper> _mapper;
     private readonly Mock<IUnitOfWork> _unitOfWork;
+    private readonly Mock<ILogger<BookingService>> _logger;   
     private readonly BookingService _bookingService;
-    
+
     public BookingServiceTests()
     {
         _bookingRepository = new Mock<IBookingRepository>();
         _computerRepository = new Mock<IComputerRepository>();
         _mapper = new Mock<IMapper>();
         _unitOfWork = new Mock<IUnitOfWork>();
-        
+        _logger = new Mock<ILogger<BookingService>>(); 
+
         _bookingService = new BookingService(
             _bookingRepository.Object
             , _computerRepository.Object
             , _mapper.Object
-            , _unitOfWork.Object);
+            , _unitOfWork.Object
+            , _logger.Object);  
     }
 
     [Fact]

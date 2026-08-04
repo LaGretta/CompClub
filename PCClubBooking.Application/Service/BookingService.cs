@@ -5,6 +5,7 @@ using PCClubBooking.Application.Interfaces.Repository;
 using PCClubBooking.Application.Interfaces.Service;
 using PCClubBooking.Domain.Entities;
 using PCClubBooking.Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace PCClubBooking.Application.Service;
 
@@ -14,22 +15,28 @@ public class BookingService : IBookingService
     private readonly IComputerRepository _computerRepository;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<BookingService> _logger; 
 
     public BookingService(IBookingRepository bookingRepository
         , IComputerRepository computerRepository
         , IMapper mapper
-        , IUnitOfWork unitOfWork)
+        , IUnitOfWork unitOfWork
+        , ILogger<BookingService> logger)
     {
         _bookingRepository = bookingRepository;
         _computerRepository = computerRepository;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
     public async Task<ResponseBookingDto> CreateBooking(CreateBookingDto createBookingDto, int userId , CancellationToken ct)
     {
         var findpc = await _computerRepository.GetComputerById(createBookingDto.ComputerId , ct);
         if (findpc == null)
+        {
+            _logger.LogWarning("Booking failed: computer {ComputerId} not found", createBookingDto.ComputerId);
             throw new KeyNotFoundException("Computer not found");
+        }
         if (!findpc.IsWorking)
             throw new InvalidOperationException("Computer is not working");
         if (createBookingDto.EndTime <= createBookingDto.StartTime)
@@ -52,9 +59,12 @@ public class BookingService : IBookingService
             await _bookingRepository.CreateBooking(booking , ct);
             await _unitOfWork.SaveChangesAsync(ct);
             await _unitOfWork.CommitTransactionAsync(ct);
+            _logger.LogInformation("Booking created: {BookingId} for user {UserId}, computer {ComputerId}",
+                booking.Id, userId, createBookingDto.ComputerId); 
         }
-        catch
+        catch(Exception ex)
         {
+            _logger.LogError(ex, "Failed to create booking for user {UserId}", userId);
             await _unitOfWork.RollbackTransactionAsync(ct);
             throw;
         }
@@ -86,9 +96,11 @@ public class BookingService : IBookingService
             find.Status = BookingStatus.Cancelled;
             await _unitOfWork.SaveChangesAsync(ct);
             await _unitOfWork.CommitTransactionAsync(ct);
+            _logger.LogInformation("Booking cancelled: {BookingId} by user {UserId}", bookingId, userId);
         }
-        catch
+        catch(Exception ex)
         {
+            _logger.LogError(ex, "Failed to cancel booking {BookingId} for user {UserId}", bookingId, userId);
             await _unitOfWork.RollbackTransactionAsync(ct);
             throw;
         }
