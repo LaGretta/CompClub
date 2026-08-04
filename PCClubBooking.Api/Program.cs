@@ -8,6 +8,7 @@ using PCClubBooking.Application;
 using PCClubBooking.Infrastructure;
 using PCClubBooking.Infrastructure.Data;
 using Serilog;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Host.UseSerilog((context, config) =>
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -61,8 +63,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
-app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
+app.UseExceptionHandler();
 
 using (var scope = app.Services.CreateScope())
 {

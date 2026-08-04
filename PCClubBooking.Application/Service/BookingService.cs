@@ -75,9 +75,9 @@ public class BookingService : IBookingService
         var bookings = await _bookingRepository.GetMyBooking(userId , ct);
             return _mapper.Map<List<ResponseBookingDto>>(bookings);
     }
-    public async Task<ResponseBookingDto> GetBookingById(int bookingId ,CancellationToken ct)
+    public async Task<ResponseBookingDto> GetBookingById(int bookingId, int userId, CancellationToken ct)
     {
-        var find = await _bookingRepository.GetBookingById(bookingId ,ct);
+        var find = await _bookingRepository.GetMyBookingById(userId, bookingId, ct);
         if (find == null)
             throw new KeyNotFoundException("Booking not found");
         return _mapper.Map<ResponseBookingDto>(find);
