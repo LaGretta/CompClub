@@ -1,13 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.API", "src\Gateway\Gateway.API\Gateway.API.csproj", "{8A05F3AF-F350-4809-B23F-72D040A748D8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.Application", "src\Gateway\Gateway.Application\Gateway.Application.csproj", "{9CC332B8-7692-407F-8908-02979093AFF5}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.Storage", "src\Gateway\Gateway.Storage\Gateway.Storage.csproj", "{DA8982D4-58C0-4EC1-9BCF-EE2DB66B43FE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.Domain", "src\Gateway\Gateway.Domain\Gateway.Domain.csproj", "{50768515-95BC-46C8-BF57-06060C447FE6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService.API", "src\AuthService\AuthService.API\AuthService.API.csproj", "{E8DE506D-A09A-470E-943F-FCA2A855B581}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService.Application", "src\AuthService\AuthService.Application\AuthService.Application.csproj", "{4A6BC8D3-4FCD-4096-82C2-72B8A8557410}"
