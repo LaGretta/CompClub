@@ -50,7 +50,7 @@ public class ComputerServiceTests
     {
         _computerRepository
             .Setup(repo => repo.GetComputerById(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Computer { Id = 1, Name = "Test1" });
+            .ReturnsAsync(new Computer { Id = 1, Name = "Test" });
 
         _mapper
             .Setup(n => n.Map<ComputerResponseDto>(It.IsAny<Computer>()))
