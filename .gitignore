@@ -1,0 +1,58 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+!packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Logs
+*.log
+
+# ASP.NET
+appsettings.Development.json
+appsettings.json
+
+# Entity Framework
+Migrations/*.Designer.cs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test results
+TestResults/
+
+# Publish output
+publish/
+wwwroot/lib/
+
+# dotCover
+*.dotCover
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
