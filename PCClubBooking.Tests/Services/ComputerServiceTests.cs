@@ -73,7 +73,7 @@ public class ComputerServiceTests
 
         _mapper
             .Setup(n => n.Map<Computer>(It.IsAny<CreateComputerDto>()))
-            .Returns(new Computer { Id = 1, Name = "Test", Category = ComputerCategory.Standard, PricePerHour = 100 });
+            .Returns(new Computer { Id = 1, Name = "Test2", Category = ComputerCategory.Standard, PricePerHour = 100 });
 
         await _computerService.CreateComputer(dto, CancellationToken.None);
 
