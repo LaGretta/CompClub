@@ -9,5 +9,4 @@
     <ItemGroup>
       <ProjectReference Include="..\AuthService.Application.Tests\AuthService.Application.Tests.csproj" />
     </ItemGroup>
-
 </Project>
