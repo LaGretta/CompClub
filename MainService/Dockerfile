@@ -1,4 +1,18 @@
-﻿# ---------- BUILD ----------
+﻿# ---------- FRONTEND BUILD (React + Vite) ----------
+FROM node:20-alpine AS client
+
+WORKDIR /client
+
+# Спочатку тільки маніфести — для кешування npm install
+COPY clientapp/package*.json ./
+RUN npm install
+
+# Решта фронту і збірка у /client/dist
+COPY clientapp/ ./
+RUN npm run build
+
+
+# ---------- BUILD ----------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
@@ -29,6 +43,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 COPY --from=build /app/publish .
+
+# Статика React потрапляє у wwwroot — її віддає ASP.NET (UseStaticFiles + fallback)
+COPY --from=client /client/dist ./wwwroot
 
 EXPOSE 8080
 

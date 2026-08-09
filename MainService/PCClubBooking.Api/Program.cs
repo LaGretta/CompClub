@@ -82,11 +82,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();   
+// Віддача React-фронту з wwwroot (index.html за замовчуванням + статика)
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SPA-fallback: усе, що не /api і не статичний файл, віддає index.html
+app.MapFallbackToFile("index.html");
 
 app.Run();
 public partial class Program { }

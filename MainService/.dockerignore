@@ -10,3 +10,7 @@
 *.userprefs
 
 PCClubBooking.Tests/
+
+# Фронт: у контейнер потрапляє тільки вихідний код, залежності/білд ставляться всередині
+clientapp/node_modules/
+clientapp/dist/
