@@ -32,4 +32,6 @@ COPY --from=build /app/publish .
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "PCClubBooking.Api.dll"]
+# Railway інжектить змінну PORT у рантаймі — слухаємо саме її.
+# Fallback 8080 залишає docker-compose / локальний запуск робочим (там PORT не заданий).
+ENTRYPOINT ["sh", "-c", "exec dotnet PCClubBooking.Api.dll --urls http://0.0.0.0:${PORT:-8080}"]
