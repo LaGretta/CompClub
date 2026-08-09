@@ -70,7 +70,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     if (db.Database.IsRelational())
+    {
         await db.Database.MigrateAsync();
+        await SeedData.SeedAsync(db);
+    }
 }
 
 // Configure the HTTP request pipeline.
