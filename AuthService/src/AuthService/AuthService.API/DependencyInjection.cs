@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddDbContext<AuthServiceContext>((provider, options) =>
             {
                 //DB
+                // UseSqlServer: локальна розробка
+                // UseNpgsql: докер деплоїнг
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")
                 );
