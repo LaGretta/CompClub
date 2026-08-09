@@ -23,7 +23,7 @@ export function currentUser() {
   try {
     const p = decode(t)
     if (p.exp && p.exp * 1000 < Date.now()) { setToken(null); return null }
-    let roles = p.role ?? p.roles ?? []
+    let roles = p.role ?? p.roles ?? p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ?? []
     if (!Array.isArray(roles)) roles = [roles]
     return {
       name: p.unique_name || p.name || p.email || 'Користувач',

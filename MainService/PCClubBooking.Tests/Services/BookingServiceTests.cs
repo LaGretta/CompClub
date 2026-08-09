@@ -51,7 +51,7 @@ public class BookingServiceTests
             EndTime = DateTime.UtcNow.AddHours(2),
         };
 
-        Func<Task> act = async () => await _bookingService.CreateBooking(dto , userId: 1,CancellationToken.None);
+        Func<Task> act = async () => await _bookingService.CreateBooking(dto , userId: Guid.NewGuid(),CancellationToken.None);
         
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
@@ -74,7 +74,7 @@ public class BookingServiceTests
             PricePerHour = 50
         });
         
-        Func<Task> result = async () => await _bookingService.CreateBooking(dto , userId: 1,CancellationToken.None);
+        Func<Task> result = async () => await _bookingService.CreateBooking(dto , userId: Guid.NewGuid(),CancellationToken.None);
         await result.Should().ThrowAsync<InvalidOperationException>();
     }
 
@@ -95,7 +95,7 @@ public class BookingServiceTests
                 PricePerHour = 50
             });
         
-        Func<Task> result = async () => await _bookingService.CreateBooking(dto, userId:1,CancellationToken.None);
+        Func<Task> result = async () => await _bookingService.CreateBooking(dto, userId: Guid.NewGuid(),CancellationToken.None);
         
         await result.Should().ThrowAsync<ArgumentException>();
             
@@ -127,7 +127,7 @@ public class BookingServiceTests
                 ,It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         
-        Func<Task> result = async () => await _bookingService.CreateBooking(dto, userId: 1, CancellationToken.None);
+        Func<Task> result = async () => await _bookingService.CreateBooking(dto, userId: Guid.NewGuid(), CancellationToken.None);
         
         await result.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -166,7 +166,7 @@ public class BookingServiceTests
         _mapper.Setup(n => n.Map<ResponseBookingDto>(It.IsAny<Booking>()))
             .Returns(new ResponseBookingDto());
     
-        var result = await _bookingService.CreateBooking(dto , userId: 1, CancellationToken.None);
+        var result = await _bookingService.CreateBooking(dto , userId: Guid.NewGuid(), CancellationToken.None);
 
         result.Should().NotBeNull();
         
@@ -182,9 +182,9 @@ public class BookingServiceTests
     public async Task CancelBooking_WhenBookingIsNotFound_KeyNotFoundException()
     {
         _bookingRepository
-            .Setup(n => n.GetMyBookingById(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(n => n.GetMyBookingById(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Booking?)null);
-        Func<Task> act = async () => await _bookingService.CancelBooking(bookingId: 1, userId: 1, CancellationToken.None);
+        Func<Task> act = async () => await _bookingService.CancelBooking(bookingId: 1, userId: Guid.NewGuid(), CancellationToken.None);
 
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
@@ -193,10 +193,10 @@ public class BookingServiceTests
     public async Task CancelBooking_WhenBookingIsNotActive_InvalidOperationException()
     {
         _bookingRepository
-            .Setup(n => n.GetMyBookingById(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(n => n.GetMyBookingById(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Booking { Id = 1, Status = BookingStatus.Completed });
 
-        Func<Task> act = async () => await _bookingService.CancelBooking(bookingId: 1, userId: 1, CancellationToken.None);
+        Func<Task> act = async () => await _bookingService.CancelBooking(bookingId: 1, userId: Guid.NewGuid(), CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -205,13 +205,13 @@ public class BookingServiceTests
     public async Task CancelBooking_WhenBookingIsActive_CancelsAndCommits()
     {
         _bookingRepository
-            .Setup(n => n.GetMyBookingById(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(n => n.GetMyBookingById(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Booking { Id = 1, Status = BookingStatus.Active });
 
         _mapper.Setup(n => n.Map<ResponseBookingDto>(It.IsAny<Booking>()))
             .Returns(new ResponseBookingDto());
         
-        var result = await _bookingService.CancelBooking(1, 1, CancellationToken.None);
+        var result = await _bookingService.CancelBooking(1, Guid.NewGuid(), CancellationToken.None);
 
         result.Should().NotBeNull();
 

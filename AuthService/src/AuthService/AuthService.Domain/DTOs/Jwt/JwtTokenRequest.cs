@@ -8,5 +8,5 @@ public sealed class JwtTokenRequest
 
     public string Email { get; init; } = null!;
 
-    public IReadOnlyCollection<Guid> RoleIds { get; init; } = [];
+    public IReadOnlyCollection<string> RoleNames { get; init; } = [];
 }

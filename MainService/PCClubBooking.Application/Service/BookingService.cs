@@ -29,7 +29,7 @@ public class BookingService : IBookingService
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
-    public async Task<ResponseBookingDto> CreateBooking(CreateBookingDto createBookingDto, int userId , CancellationToken ct)
+    public async Task<ResponseBookingDto> CreateBooking(CreateBookingDto createBookingDto, Guid userId , CancellationToken ct)
     {
         var findpc = await _computerRepository.GetComputerById(createBookingDto.ComputerId , ct);
         if (findpc == null)
@@ -70,12 +70,12 @@ public class BookingService : IBookingService
         }
         return _mapper.Map<ResponseBookingDto>(booking);
     }
-    public async Task<List<ResponseBookingDto>> GetAllMyBookings(int userId , CancellationToken ct)
+    public async Task<List<ResponseBookingDto>> GetAllMyBookings(Guid userId , CancellationToken ct)
     {
         var bookings = await _bookingRepository.GetMyBooking(userId , ct);
             return _mapper.Map<List<ResponseBookingDto>>(bookings);
     }
-    public async Task<ResponseBookingDto> GetBookingById(int bookingId, int userId, CancellationToken ct)
+    public async Task<ResponseBookingDto> GetBookingById(int bookingId, Guid userId, CancellationToken ct)
     {
         var find = await _bookingRepository.GetMyBookingById(userId, bookingId, ct);
         if (find == null)
@@ -83,7 +83,7 @@ public class BookingService : IBookingService
         return _mapper.Map<ResponseBookingDto>(find);
     }
 
-    public async Task<ResponseBookingDto> CancelBooking(int bookingId, int userId , CancellationToken ct)
+    public async Task<ResponseBookingDto> CancelBooking(int bookingId, Guid userId , CancellationToken ct)
     {
         var find = await _bookingRepository.GetMyBookingById(userId , bookingId , ct);
         if(find == null)

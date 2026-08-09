@@ -13,6 +13,20 @@ builder.Services.AddForwardedHeadersMiddleware();//Forwarded Headers Middleware
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS для фронта (браузер шле логін/реєстрацію крос-доменно з credentials).
+// Origins задаються в конфізі Cors:AllowedOrigins; є дефолти для локалки + Railway-фронта.
+const string FrontendCors = "frontend";
+builder.Services.AddCors(options =>
+{
+    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? new[] { "http://localhost:5173", "https://compclub-production.up.railway.app" };
+    options.AddPolicy(FrontendCors, policy => policy
+        .WithOrigins(origins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -25,6 +39,8 @@ app.UseForwardedHeaders();//Forwarded Headers Middleware
 app.UseTestEndpoints();
 
 app.UseHttpsRedirection();
+
+app.UseCors(FrontendCors);
 
 app.UseAuthorization();
 

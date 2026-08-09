@@ -36,7 +36,7 @@ public class JwtService: IJwtService
             new (JwtRegisteredClaimNames.UniqueName, request.UserName)
         };
 
-        claims.AddRange(request.RoleIds.Select(r => new Claim(ClaimTypes.Role, r.ToString())));
+        claims.AddRange(request.RoleNames.Select(name => new Claim(ClaimTypes.Role, name)));
 
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,

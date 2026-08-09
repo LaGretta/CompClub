@@ -18,8 +18,8 @@ public class BookingController : ControllerBase
     {
         _bookingService = bookingService;
     }
-    private int GetUserId()
-        => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private Guid GetUserId()
+        => Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBookingDto dto , CancellationToken ct)
@@ -39,7 +39,7 @@ public class BookingController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var booking = await _bookingService.GetBookingById(id, userId, ct);
         return Ok(booking);
     }

@@ -53,17 +53,17 @@ public class AuthService : IAuthService
                 cancellationToken))
             throw new UserAlreadyExistsException(request.Email);
         //access token creating
-        var clientRoleId = (await _authRepository.Roles.FirstOrDefaultAsync(
+        var clientRole = (await _authRepository.Roles.FirstOrDefaultAsync(
             new() { Predicate = r => r.Name == "Client" },
             new() { Tracking = QueryTracking.NoTracking, IgnoreQueryFilters = false },
-            cancellationToken))?.Id ?? throw new DataExistenceException("Roles", "r => r.Name == \"Client\"");
+            cancellationToken)) ?? throw new DataExistenceException("Roles", "r => r.Name == \"Client\"");
         var userId = Guid.NewGuid();
         string accessToken = _jwtService.GenerateToken(new()
         {
             UserId = userId,
             UserName = request.Name,
             Email = request.Email,
-            RoleIds = [clientRoleId]
+            RoleNames = [clientRole.Name]
         });
         //time recording
         var dateNow = DateTime.UtcNow;
@@ -143,16 +143,20 @@ public class AuthService : IAuthService
         await _authRepository.Sessions.AddAsync(newSession, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         //access token creating
-        var userRoles = (await _authRepository.UserRoles.GetAsync(
+        var roleIds = (await _authRepository.UserRoles.GetAsync(
             new() { Predicate = r => r.UserId == user.Id },
             new() { Tracking = QueryTracking.NoTracking },
             cancellationToken)).Select(x => x.RoleId).ToList();
+        var roleNames = (await _authRepository.Roles.GetAsync(
+            new() { Predicate = r => roleIds.Contains(r.Id) },
+            new() { Tracking = QueryTracking.NoTracking },
+            cancellationToken)).Select(r => r.Name).ToList();
         string accessToken = _jwtService.GenerateToken(new()
         {
             UserId = user.Id,
             UserName = user.UserName,
             Email = user.Email,
-            RoleIds = userRoles,
+            RoleNames = roleNames,
         });
         //return-data creating and returning
         return new()
@@ -214,16 +218,20 @@ public class AuthService : IAuthService
         _authRepository.Sessions.Update(session);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         //access token creating
-        var userRoles = (await _authRepository.UserRoles.GetAsync(
+        var roleIds = (await _authRepository.UserRoles.GetAsync(
             new() { Predicate = r => r.UserId == user.Id },
             new() { Tracking = QueryTracking.NoTracking },
             cancellationToken)).Select(x => x.RoleId).ToList();
+        var roleNames = (await _authRepository.Roles.GetAsync(
+            new() { Predicate = r => roleIds.Contains(r.Id) },
+            new() { Tracking = QueryTracking.NoTracking },
+            cancellationToken)).Select(r => r.Name).ToList();
         string accessToken = _jwtService.GenerateToken(new()
         {
             UserId = user.Id,
             UserName = user.UserName,
             Email = user.Email,
-            RoleIds = userRoles,
+            RoleNames = roleNames,
         });
         //return-data creating and returning
         return new()

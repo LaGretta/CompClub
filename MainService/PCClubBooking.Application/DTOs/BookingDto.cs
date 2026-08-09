@@ -11,8 +11,8 @@ public class CreateBookingDto
 
 public class ResponseBookingDto
 {
-    public int Id { get; set; }       
-    public int UserId { get; set; }
+    public int Id { get; set; }
+    public Guid UserId { get; set; }
     public int ComputerId { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }

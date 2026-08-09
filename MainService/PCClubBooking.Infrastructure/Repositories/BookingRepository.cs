@@ -19,7 +19,7 @@ public class BookingRepository : IBookingRepository
        await _dbContext.Bookings.AddAsync(booking , ct);
     }
 
-    public async Task<List<Booking>> GetMyBooking(int userId , CancellationToken ct)
+    public async Task<List<Booking>> GetMyBooking(Guid userId , CancellationToken ct)
     {
         return await _dbContext.Bookings.Where(b => b.UserId == userId).ToListAsync(ct);
     }
@@ -30,7 +30,7 @@ public class BookingRepository : IBookingRepository
          return booking;
     }
 
-    public async Task<Booking?> GetMyBookingById(int userId, int bookingId , CancellationToken ct)
+    public async Task<Booking?> GetMyBookingById(Guid userId, int bookingId , CancellationToken ct)
     {
          var  booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId , ct);
          return booking;
