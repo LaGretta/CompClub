@@ -1,5 +1,8 @@
 using AuthService.API.Controllers;
 using AuthService.Api;
+using AuthService.Domain.Models;
+using AuthService.Storage;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +31,19 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// На старті: накотити міграції та засідити базові ролі (без них register падає).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AuthServiceContext>();
+    if (db.Database.IsRelational())
+        await db.Database.MigrateAsync();
+
+    foreach (var roleName in new[] { "Client", "Admin" })
+        if (!await db.Roles.AnyAsync(r => r.Name == roleName))
+            db.Roles.Add(new Role { Name = roleName });
+    await db.SaveChangesAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {

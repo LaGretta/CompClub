@@ -36,4 +36,5 @@ COPY --from=build /app/publish .
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "AuthService.API.dll"]
+# Railway інжектить PORT у рантаймі — слухаємо саме її (fallback 8080 для локалки/compose).
+ENTRYPOINT ["sh", "-c", "exec dotnet AuthService.API.dll --urls http://0.0.0.0:${PORT:-8080}"]

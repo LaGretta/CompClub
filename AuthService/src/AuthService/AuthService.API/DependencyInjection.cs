@@ -34,10 +34,8 @@ public static class DependencyInjection
         //Ef core
         services.AddDbContext<AuthServiceContext>((provider, options) =>
             {
-                //DB
-                // UseSqlServer: локальна розробка
-                // UseNpgsql: докер деплоїнг
-                options.UseSqlServer(
+                //DB (PostgreSQL — Railway)
+                options.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection")
                 );
                 //AuditInterceptor
