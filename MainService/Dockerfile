@@ -1,11 +1,11 @@
-﻿# ---------- FRONTEND BUILD (React + Vite) ----------
-FROM node:20-alpine AS client
+﻿# ---------- FRONTEND BUILD (React 19 + Vite 8 + Tailwind 4) ----------
+FROM node:22-alpine AS client
 
 WORKDIR /client
 
-# Спочатку тільки маніфести — для кешування npm install
+# Спочатку маніфести — для кешування залежностей (є package-lock.json → npm ci)
 COPY clientapp/package*.json ./
-RUN npm install
+RUN npm ci
 
 # Решта фронту і збірка у /client/dist
 COPY clientapp/ ./
