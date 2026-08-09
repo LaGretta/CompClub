@@ -1,0 +1,110 @@
+:root {
+  --bg: #0f1117;
+  --panel: #1a1d27;
+  --panel-2: #222634;
+  --text: #e6e8ee;
+  --muted: #8b90a0;
+  --accent: #6c7bff;
+  --ok: #37d67a;
+  --bad: #ff5c72;
+  --border: #2a2f3d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+header h1 { margin: 0; font-size: 32px; }
+.subtitle { color: var(--muted); margin: 4px 0 0; }
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tabs button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 12px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tabs button.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.card-head h3 { margin: 0; font-size: 17px; }
+.card-row { display: flex; align-items: center; gap: 8px; color: var(--muted); margin: 10px 0; font-size: 14px; }
+.price { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+.desc { color: var(--muted); font-size: 14px; min-height: 40px; }
+
+.badge {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text);
+  white-space: nowrap;
+}
+.badge-vip { background: #4a3a12; color: #ffcf5c; }
+.badge-ps5 { background: #123a4a; color: #5cd0ff; }
+.badge-standard { background: #2a2f3d; color: #b8bdcc; }
+.badge-promo { background: #123a1f; color: var(--ok); }
+
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot-ok { background: var(--ok); }
+.dot-bad { background: var(--bad); }
+
+.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+}
+.devices { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.muted { color: var(--muted); font-size: 14px; }
+.err { color: var(--bad); font-size: 14px; }
+footer { margin-top: 48px; text-align: center; font-size: 13px; }
