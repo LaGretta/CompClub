@@ -58,7 +58,9 @@ public sealed class MemoryCacheService: IMemoryCacheService
     {
         var options = new MemoryCacheEntryOptions
         {
-            Priority = policy.Priority
+            Priority = policy.Priority,
+            // Обов'язково: MemoryCache налаштований із SizeLimit, тож без Size кожен Set кидає виняток (→ 500).
+            Size = 1
         };
 
         if (policy.AbsoluteExpiration is not null)
