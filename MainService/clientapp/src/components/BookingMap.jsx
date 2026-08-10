@@ -4,7 +4,6 @@ import { bookingsApi, computersApi } from '../services/api';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
-// Оформлення зон за категорією ПК з бекенду (0 Standard, 1 VIP, 2 PS5)
 const CATEGORY_META = {
   0: { name: 'СТАНДАРТ', sub: '', specs: ['RTX 5060 Ti', '144Hz IPS'] },
   1: { name: 'VIP', sub: 'BOOTCAMP', specs: ['RTX 5080', '360Hz OLED'] },
@@ -27,9 +26,14 @@ export default function BookingMap({ onRequireAuth }) {
   const [activeCat, setActiveCat] = useState(null);
   const [tariff, setTariff] = useState(TARIFFS[1]);
   const [hours, setHours] = useState(2);
-  const [selected, setSelected] = useState(null); // реальний обʼєкт компʼютера
+  const [selected, setSelected] = useState(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // === НОВІ СТЕЙТИ ДЛЯ ПЕРЕВІРКИ ЗАЙНЯТОСТІ ===
+  const [availablePcIds, setAvailablePcIds] = useState([]);
+  const [isChecking, setIsChecking] = useState(false);
+
+  // Завантажуємо ВСІ комп'ютери при старті
   useEffect(() => {
     let alive = true;
     computersApi.getAll()
@@ -44,7 +48,6 @@ export default function BookingMap({ onRequireAuth }) {
     [computers]
   );
 
-  // дефолтна категорія після завантаження
   useEffect(() => {
     if (activeCat === null && categories.length) setActiveCat(categories[0]);
   }, [categories, activeCat]);
@@ -53,6 +56,50 @@ export default function BookingMap({ onRequireAuth }) {
     () => computers.filter((c) => c.category === activeCat),
     [computers, activeCat]
   );
+
+  // === ЛОГІКА РОЗРАХУНКУ ЧАСУ БРОНЮВАННЯ ===
+  const getBookingTimes = () => {
+    let startTime = new Date();
+    let endTime = new Date();
+
+    if (tariff.id === 'standard') {
+      endTime.setHours(startTime.getHours() + Number(hours));
+    } else if (tariff.id === 'morning') {
+      startTime.setHours(8, 0, 0, 0);
+      if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
+      endTime = new Date(startTime);
+      endTime.setHours(14, 0, 0, 0);
+    } else if (tariff.id === 'night') {
+      startTime.setHours(22, 0, 0, 0);
+      if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
+      endTime = new Date(startTime);
+      endTime.setDate(endTime.getDate() + 1);
+      endTime.setHours(8, 0, 0, 0);
+    }
+    return { startTime, endTime };
+  };
+
+  // === ФУНКЦІЯ ПЕРЕВІРКИ ВІЛЬНИХ МІСЦЬ ===
+  const fetchAvailable = async () => {
+    setIsChecking(true);
+    try {
+      const { startTime, endTime } = getBookingTimes();
+      const availablePCs = await computersApi.getAvailable(startTime, endTime);
+      if (Array.isArray(availablePCs)) {
+        // Зберігаємо ID тільки ТИХ комп'ютерів, які вільні
+        setAvailablePcIds(availablePCs.map(pc => pc.id));
+      }
+    } catch (error) {
+      console.error("Помилка перевірки зайнятості:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Перевіряємо вільні місця при зміні тарифу або годин
+  useEffect(() => {
+    fetchAvailable();
+  }, [tariff, hours]);
 
   const calculateTotal = () => {
     if (!selected) return 0;
@@ -67,27 +114,15 @@ export default function BookingMap({ onRequireAuth }) {
 
     setIsSubmitting(true);
     try {
-      let startTime = new Date();
-      let endTime = new Date();
-
-      if (tariff.id === 'standard') {
-        endTime.setHours(startTime.getHours() + Number(hours));
-      } else if (tariff.id === 'morning') {
-        startTime.setHours(8, 0, 0, 0);
-        if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
-        endTime = new Date(startTime);
-        endTime.setHours(14, 0, 0, 0);
-      } else if (tariff.id === 'night') {
-        startTime.setHours(22, 0, 0, 0);
-        if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
-        endTime = new Date(startTime);
-        endTime.setDate(endTime.getDate() + 1);
-        endTime.setHours(8, 0, 0, 0);
-      }
-
+      const { startTime, endTime } = getBookingTimes();
       await bookingsApi.create(selected.id, startTime, endTime);
+      
       alert('🎉 Успішно заброньовано! Деталі — у профілі.');
       setSelected(null);
+      
+      // === ОНОВЛЮЄМО СПИСОК ВІЛЬНИХ МІСЦЬ ОДРАЗУ ПІСЛЯ БРОНЮВАННЯ ===
+      fetchAvailable();
+
     } catch (error) {
       alert(`Помилка: ${error.message}`);
     } finally {
@@ -193,13 +228,15 @@ export default function BookingMap({ onRequireAuth }) {
                 </div>
                 <div style={{ background: 'rgba(24, 24, 27, 0.6)', padding: 24, borderRadius: 8, border: `1px solid ${C.border}` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                    
                     {zoneComputers.map((pc) => {
                       const isSelected = selected?.id === pc.id;
                       const down = !pc.isWorking;
                       
-                      // ⚠️ ТИМЧАСОВА заглушка: зараз усі комп'ютери вільні, 
-                      // поки ми не підключили API перевірки вільного часу.
-                      const isBooked = false; 
+                      // === СПРАВЖНЯ ЛОГІКА ЗАЙНЯТОСТІ ===
+                      // Якщо комп'ютера немає в масиві availablePcIds, значить він зайнятий!
+                      // (Також враховуємо, чи ми не в процесі перевірки, щоб не було мигання)
+                      const isBooked = !isChecking && !availablePcIds.includes(pc.id); 
 
                       // Логіка кольорів кнопок
                       let btnBg = 'rgba(9, 9, 11, 0.5)';
@@ -221,15 +258,15 @@ export default function BookingMap({ onRequireAuth }) {
                       }
 
                       return (
-                        <button key={pc.id} disabled={down || isBooked} onClick={() => setSelected(pc)} style={{
+                        <button key={pc.id} disabled={down || isBooked || isChecking} onClick={() => setSelected(pc)} style={{
                           padding: '14px 12px', borderRadius: 6, fontWeight: 700, fontSize: 14, textAlign: 'left',
                           background: btnBg, border: btnBorder, color: btnColor,
-                          cursor: (down || isBooked) ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                          opacity: isBooked ? 0.6 : 1
+                          cursor: (down || isBooked || isChecking) ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                          opacity: (isBooked || isChecking) ? 0.6 : 1
                         }}>
                           <div style={{ fontWeight: 800 }}>{pc.name}</div>
                           <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
-                            {down ? 'на ремонті' : isBooked ? 'зайнято' : `${Number(pc.pricePerHour)} ₴/год`}
+                            {down ? 'на ремонті' : isChecking ? 'перевірка...' : isBooked ? 'зайнято' : `${Number(pc.pricePerHour)} ₴/год`}
                           </div>
                         </button>
                       );
@@ -271,10 +308,10 @@ export default function BookingMap({ onRequireAuth }) {
                 <span style={{ fontSize: 14, color: C.muted, fontWeight: 700, letterSpacing: 1, paddingBottom: 4 }}>ЗАГАЛОМ:</span>
                 <span style={{ fontSize: 42, fontWeight: 800, color: C.yellow, lineHeight: 1 }}>{calculateTotal()} ₴</span>
               </div>
-              <button disabled={isSubmitting} onClick={handleBook} style={{
+              <button disabled={isSubmitting || isChecking} onClick={handleBook} style={{
                 width: '100%', padding: '20px', background: C.yellow, color: '#000', border: 'none',
-                borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                letterSpacing: 2, transition: 'all 0.2s', opacity: isSubmitting ? 0.7 : 1
+                borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: (isSubmitting || isChecking) ? 'not-allowed' : 'pointer',
+                letterSpacing: 2, transition: 'all 0.2s', opacity: (isSubmitting || isChecking) ? 0.7 : 1
               }}>
                 {isSubmitting ? 'ОБРОБКА...' : isAuthenticated ? 'ПІДТВЕРДИТИ' : 'УВІЙТИ Й ЗАБРОНЮВАТИ'}
               </button>
