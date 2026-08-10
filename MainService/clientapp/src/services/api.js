@@ -17,7 +17,7 @@ const getHeaders = (requireAuth = false) => {
   return headers;
 };
 
-// 1. Комп'ютери
+// Комп'ютери
 export const computersApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/computers`);
@@ -25,14 +25,12 @@ export const computersApi = {
     return res.json();
   },
 
-  // Отримати один ПК
   getById: async (id) => {
     const res = await fetch(`${API_BASE_URL}/computers/${id}`);
     if (!res.ok) throw new Error('Комп\'ютер не знайдено');
     return res.json();
   },
 
-  // Отримати вільні ПК у вказаному проміжку
   getAvailable: async (start, end) => {
     const startDate = new Date(start).toISOString();
     const endDate = new Date(end).toISOString();
@@ -43,7 +41,7 @@ export const computersApi = {
   }
 };
 
-// 2. Бронювання (тільки авторизовані)
+// Бронювання (тільки авторизовані)
 export const bookingsApi = {
   getMy: async () => {
     const res = await fetch(`${API_BASE_URL}/bookings/my`, {
@@ -55,20 +53,42 @@ export const bookingsApi = {
 
   // Створити бронювання
   create: async (computerId, startTime, endTime) => {
+    const payload = {
+      computerId: Number(computerId), // Гарантуємо, що це int для C#
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString()
+    };
+
     const res = await fetch(`${API_BASE_URL}/bookings`, {
       method: 'POST',
       headers: getHeaders(true),
-      body: JSON.stringify({
-        computerId,
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString()
-      })
+      body: JSON.stringify(payload)
     });
     
     if (!res.ok) {
-        // Намагаємось витягнути деталі помилки з бекенду
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Не вдалося створити бронювання. Можливо, час вже зайнятий.');
+        // === РЕНТГЕН ПОМИЛОК ВІД C# БЕКЕНДУ ===
+        let errorMessage = `Помилка ${res.status}: `;
+        try {
+            const errorData = await res.json();
+            
+            if (errorData.errors) {
+                // C# FluentValidation помилки
+                errorMessage += Object.values(errorData.errors).flat().join(' | ');
+            } else if (errorData.detail) {
+                errorMessage += errorData.detail;
+            } else if (errorData.title) {
+                errorMessage += errorData.title;
+            } else if (errorData.message) {
+                errorMessage += errorData.message;
+            } else {
+                errorMessage += JSON.stringify(errorData);
+            }
+        } catch (e) {
+            // Якщо сервер повернув не JSON (наприклад 401 чи 500)
+            errorMessage += "Сервер відхилив запит (можливо, проблема з токеном).";
+        }
+        
+        throw new Error(errorMessage);
     }
     return res.json();
   },
@@ -84,7 +104,7 @@ export const bookingsApi = {
   }
 };
 
-// 3. Акції
+// Акції
 export const promotionsApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/promotions`);
