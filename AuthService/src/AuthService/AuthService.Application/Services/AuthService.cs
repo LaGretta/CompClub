@@ -90,6 +90,9 @@ public class AuthService : IAuthService
         newSession.User = newUser;
         newUser.Sessions.Add(newSession);
         await _authRepository.Users.AddAsync(newUser, cancellationToken);
+        // Призначаємо роль Client — щоб роль реально зберігалась (login читає її з UserRoles).
+        await _authRepository.UserRoles.AddAsync(
+            new UserRole { UserId = userId, RoleId = clientRole.Id }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         //return-data creating and returning
         return new()

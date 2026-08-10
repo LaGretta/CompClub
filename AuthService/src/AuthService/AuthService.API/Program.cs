@@ -68,6 +68,9 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCors);
 
+// Після UseCors — щоб на error-відповідях лишались CORS-заголовки.
+app.UseMiddleware<AuthService.API.Middleware.ExceptionHandlingMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
