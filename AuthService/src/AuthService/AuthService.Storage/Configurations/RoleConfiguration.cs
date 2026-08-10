@@ -11,7 +11,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         //Guid field setup
         builder.HasKey(s => s.Id);
         builder.Property(x => x.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()")
+            .HasDefaultValueSql("gen_random_uuid()")
             .ValueGeneratedOnAdd();
         //
     }
