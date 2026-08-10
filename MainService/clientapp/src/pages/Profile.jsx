@@ -1,6 +1,7 @@
 import React, { useContext, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Reveal from '../components/Reveal';
 import { bookingsApi } from '../services/api';
 
@@ -8,12 +9,12 @@ const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b
 
 export default function Profile() {
   const { isAuthenticated, userName, avatar, logout, updateAvatar } = useContext(AuthContext);
+  const { showToast } = useToast();
   const navigate = useNavigate();
   
   const fileInputRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   
-  // Стейт для реальних бронювань
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
@@ -23,14 +24,14 @@ export default function Profile() {
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
+      showToast('Бронювання успішно скасовано!', 'success');
     } catch (e) {
-      alert('Не вдалося скасувати: ' + e.message);
+      showToast(`Не вдалося скасувати: ${e.message}`, 'error');
     } finally {
       setCancellingId(null);
     }
   };
 
-  // Завантажуємо бронювання при відкритті сторінки
   useEffect(() => {
     if (isAuthenticated) {
       const fetchMyBookings = async () => {
@@ -58,17 +59,17 @@ export default function Profile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         updateAvatar(reader.result);
+        showToast('Аватарку успішно оновлено!', 'success');
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Допоміжна функція для статусу
   const getStatusInfo = (status) => {
     switch(status) {
       case 0: return { text: 'Активне', color: C.yellow, bg: 'rgba(250, 204, 21, 0.15)', border: 'rgba(250, 204, 21, 0.3)' };
-      case 1: return { text: 'Завершено', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)' }; // Зелений
-      case 2: return { text: 'Скасовано', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)' }; // Червоний
+      case 1: return { text: 'Завершено', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)' }; 
+      case 2: return { text: 'Скасовано', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)' }; 
       default: return { text: 'Невідомо', color: C.muted, bg: 'rgba(255, 255, 255, 0.05)', border: 'rgba(255, 255, 255, 0.1)' };
     }
   };
@@ -89,7 +90,6 @@ export default function Profile() {
     <div style={{ minHeight: '100vh', background: 'transparent', paddingTop: '120px', paddingBottom: '80px', color: '#fff', fontFamily: "'Rajdhani', sans-serif" }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
         
-        {/*Ліва колонка*/}
         <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Reveal direction="left" delay={100}>
             <div style={{ ...glassCardStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -135,7 +135,7 @@ export default function Profile() {
               </span>
 
               <button 
-                onClick={() => { logout(); navigate('/'); }}
+                onClick={() => { logout(); showToast('Ви успішно вийшли з акаунту', 'success'); navigate('/'); }}
                 style={{ width: '100%', padding: '14px', background: 'rgba(239, 68, 68, 0.05)', border: `1px solid rgba(239, 68, 68, 0.3)`, color: '#ef4444', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '1px', zIndex: 2 }}
                 onMouseEnter={e => { e.target.style.background = 'rgba(239, 68, 68, 0.15)'; e.target.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.2)'; }}
                 onMouseLeave={e => { e.target.style.background = 'rgba(239, 68, 68, 0.05)'; e.target.style.boxShadow = 'none'; }}
@@ -163,7 +163,6 @@ export default function Profile() {
           </Reveal>
         </div>
 
-        {/*Права колонка (Реальні бронювання)*/}
         <div style={{ flex: '2 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Reveal direction="right" delay={300}>
             <div style={glassCardStyle}>
@@ -206,7 +205,7 @@ export default function Profile() {
                             <span style={{ fontSize: '22px', fontWeight: 900, color: C.yellow, textShadow: '0 0 10px rgba(250,204,21,0.2)' }}>
                               {booking.totalPrice} ₴
                             </span>
-                            <span style={{
+                            <span style={{ 
                               fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '6px', letterSpacing: '1px', textTransform: 'uppercase',
                               background: statusInfo.bg, color: statusInfo.color, border: `1px solid ${statusInfo.border}`
                             }}>

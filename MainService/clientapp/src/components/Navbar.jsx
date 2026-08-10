@@ -2,10 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AuthModal from './AuthModal';
 import { AuthContext } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214' };
 
 export default function Navbar() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +50,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // Функція розумно обробляє всі переходи і скролить вгору
   const handleNavigation = ({ id, path }) => {
     setIsMobileMenuOpen(false); 
     if (location.pathname !== path) {
@@ -111,7 +112,7 @@ export default function Navbar() {
                       </div>
                     </div>
                     
-                    <button onClick={() => { logout(); handleNavigation({ path: '/' }); }} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = C.muted} title="Вийти">
+                    <button onClick={() => { logout(); showToast('Ви успішно вийшли з акаунту', 'success'); handleNavigation({ path: '/' }); }} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = C.muted} title="Вийти">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -184,7 +185,7 @@ export default function Navbar() {
                   </div>
                 </div>
                 
-                <button onClick={() => { logout(); handleNavigation({ path: '/' }); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '16px', cursor: 'pointer', marginTop: '8px' }}>
+                <button onClick={() => { setIsMobileMenuOpen(false); logout(); showToast('Ви успішно вийшли з акаунту', 'success'); handleNavigation({ path: '/' }); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '16px', cursor: 'pointer', marginTop: '8px' }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
