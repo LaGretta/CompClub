@@ -1,84 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthContext } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import TournamentsPage from './pages/TournamentsPage';
 import AuthModal from './components/AuthModal';
 import Profile from './pages/Profile';
 
-// Звичайний захист (для профілю) – пускає всіх авторизованих
-const ProtectedRoute = ({ isAuth, children }) => {
-  if (!isAuth) {
-    return <Navigate to="/" replace />;
-  }
-  return children;
-};
-
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [isAuth, setIsAuth] = useState(false);
+  // Єдине джерело правди про авторизацію — AuthContext (його ж читають Navbar/BookingMap/Profile).
+  const { isAuthenticated } = useContext(AuthContext);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  const handleLoginSuccess = (userData) => {
-    // userData містить { name, token }, який ми передаємо з AuthModal
-    setUser(userData);
-    setIsAuth(true);
-  };
-
-  // Оновлений вихід із системи з викликом бекенду
-  const handleLogout = async () => {
-    try {
-      // Відправляємо запит на видалення сесії та куки на сервері
-      await fetch(`${import.meta.env.VITE_AUTH_BASE || '/api'}/logout`, {
-      method: 'DELETE',
-      credentials: 'include'
-  });
-    } catch (error) {
-      console.error("Помилка під час виходу з системи:", error);
-    } finally {
-      // У будь-якому випадку очищаємо стейт фронтенду
-      setUser(null);
-      setIsAuth(false);
-    }
-  };
 
   return (
     <Router>
-      <Navbar 
-        isAuth={isAuth} 
-        user={user} 
-        onOpenAuth={() => setIsAuthModalOpen(true)} 
-        onLogout={handleLogout}
-      />
-      
+      <Navbar />
+
       <Routes>
-        <Route path="/" element={
-          <Home onRequireAuth={() => {
-            if (!isAuth) {
-              setIsAuthModalOpen(true);
-            } else {
-              alert(`Успішно заброньовано на ім'я ${user.name}!`);
-            }
-          }} />
-        } />
+        <Route
+          path="/"
+          element={<Home onRequireAuth={() => setIsAuthModalOpen(true)} />}
+        />
         <Route path="/tournaments" element={<TournamentsPage />} />
-        
-        {/* Будь-який авторизований користувач має доступ до свого профілю */}
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute isAuth={isAuth}>
-              <Profile />
-            </ProtectedRoute>
-          } 
+        <Route
+          path="/profile"
+          element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />}
         />
       </Routes>
 
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {/* Модалка для сценарію "гість тисне Забронювати" */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </Router>
   );
 }
