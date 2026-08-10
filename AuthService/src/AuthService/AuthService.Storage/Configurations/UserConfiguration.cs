@@ -11,7 +11,7 @@ public class UserConfiguration:IEntityTypeConfiguration<User>
         //IBase
         builder.HasKey(s => s.Id);
         builder.Property(x => x.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()")
+            .HasDefaultValueSql("gen_random_uuid()")
             .ValueGeneratedOnAdd();
         //
         builder.HasIndex(u => u.Email)

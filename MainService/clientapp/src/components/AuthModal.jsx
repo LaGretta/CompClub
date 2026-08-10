@@ -24,7 +24,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     // Базові перевірки
     if (isLoginTab) {
       if (!loginInput || !password) {
@@ -43,7 +42,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     }
 
     setLoading(true);
-
+   
     try {
       if (isLoginTab) {
         // Запит на вхід

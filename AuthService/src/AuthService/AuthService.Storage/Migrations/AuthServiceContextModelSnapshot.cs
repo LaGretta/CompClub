@@ -17,6 +17,7 @@ namespace AuthService.Storage.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("auth")
                 .HasAnnotation("ProductVersion", "8.0.23")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -27,7 +28,7 @@ namespace AuthService.Storage.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -35,7 +36,7 @@ namespace AuthService.Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", "auth");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.Session", b =>
@@ -43,7 +44,7 @@ namespace AuthService.Storage.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -77,7 +78,7 @@ namespace AuthService.Storage.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Sessions");
+                    b.ToTable("Sessions", "auth");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.User", b =>
@@ -85,7 +86,7 @@ namespace AuthService.Storage.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -116,7 +117,7 @@ namespace AuthService.Storage.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", "auth");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.UserRole", b =>
@@ -134,7 +135,7 @@ namespace AuthService.Storage.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", "auth");
                 });
 
             modelBuilder.Entity("AuthService.Domain.Models.Session", b =>

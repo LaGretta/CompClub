@@ -35,9 +35,14 @@ public static class DependencyInjection
         services.AddDbContext<AuthServiceContext>((provider, options) =>
             {
                 //DB (PostgreSQL — Railway)
-                options.UseNpgsql(
-                    configuration.GetConnectionString("DefaultConnection")
-                );
+                 options.UseNpgsql(
+        configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions =>
+        {
+            npgsqlOptions.MigrationsHistoryTable(
+                "__EFMigrationsHistory",
+                "auth");
+        });
                 //AuditInterceptor
                 options.AddInterceptors(
                     provider.GetRequiredService<AuditInterceptor>());
