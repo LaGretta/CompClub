@@ -11,7 +11,7 @@ public class SessionConfiguration:IEntityTypeConfiguration<Session>
         //Guid field setup
         builder.HasKey(s => s.Id);
         builder.Property(x => x.Id)
-            .HasDefaultValueSql("NEWSEQUENTIALID()")
+            .HasDefaultValueSql("gen_random_uuid()")
             .ValueGeneratedOnAdd();
         //
         builder.HasOne(s => s.User).WithMany(u => u.Sessions).HasForeignKey(s => s.UserId);
