@@ -6,6 +6,10 @@ const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090
 // напр. https://auth-production.up.railway.app/api. Дефолт /api — той самий домен.
 const API_BASE_URL = import.meta.env.VITE_AUTH_BASE ?? '/api';
 
+console.log("ENV:", import.meta.env.VITE_AUTH_BASE);
+
+console.log("API:", API_BASE_URL);
+
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [loading, setLoading] = useState(false);
