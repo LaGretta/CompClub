@@ -2,7 +2,13 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { bookingsApi, computersApi } from '../services/api';
 
-const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
+const C = { 
+  yellow: '#facc15', 
+  muted: '#a1a1aa', 
+  surface: '#18181b', 
+  bg: '#09090b', 
+  border: '#3f3f46' 
+};
 
 const CATEGORY_META = {
   0: { name: 'СТАНДАРТ', sub: '', specs: ['RTX 5060 Ti', '144Hz IPS'] },
@@ -29,7 +35,7 @@ export default function BookingMap({ onRequireAuth }) {
   const [selected, setSelected] = useState(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // === НОВІ СТЕЙТИ ДЛЯ ПЕРЕВІРКИ ЗАЙНЯТОСТІ ===
+  // Стейти для перевірки зайнятості
   const [availablePcIds, setAvailablePcIds] = useState([]);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -57,7 +63,7 @@ export default function BookingMap({ onRequireAuth }) {
     [computers, activeCat]
   );
 
-  // === ЛОГІКА РОЗРАХУНКУ ЧАСУ БРОНЮВАННЯ ===
+  // Логіка розрахунку часу бронювання
   const getBookingTimes = () => {
     let startTime = new Date();
     let endTime = new Date();
@@ -79,7 +85,7 @@ export default function BookingMap({ onRequireAuth }) {
     return { startTime, endTime };
   };
 
-  // === ФУНКЦІЯ ПЕРЕВІРКИ ВІЛЬНИХ МІСЦЬ ===
+  // Функція перевірки вільних місць
   const fetchAvailable = async () => {
     setIsChecking(true);
     try {
@@ -110,7 +116,10 @@ export default function BookingMap({ onRequireAuth }) {
 
   const handleBook = async () => {
     if (!selected) return alert('Оберіть комп’ютер (Крок 3)');
-    if (!isAuthenticated) { onRequireAuth?.(); return; }
+    if (!isAuthenticated) { 
+      onRequireAuth?.(); 
+      return; 
+    }
 
     setIsSubmitting(true);
     try {
@@ -120,7 +129,7 @@ export default function BookingMap({ onRequireAuth }) {
       alert('🎉 Успішно заброньовано! Деталі — у профілі.');
       setSelected(null);
       
-      // === ОНОВЛЮЄМО СПИСОК ВІЛЬНИХ МІСЦЬ ОДРАЗУ ПІСЛЯ БРОНЮВАННЯ ===
+      // Оновлюємо список вільних місць одразу після бронювання
       fetchAvailable();
 
     } catch (error) {
@@ -160,12 +169,17 @@ export default function BookingMap({ onRequireAuth }) {
                     const m = CATEGORY_META[cat] ?? { name: `#${cat}`, sub: '', specs: [] };
                     const isSelected = activeCat === cat;
                     const from = Math.min(...computers.filter((c) => c.category === cat).map((c) => Number(c.pricePerHour)));
+                    
                     return (
-                      <button key={cat} onClick={() => { setActiveCat(cat); setSelected(null); }} style={{
-                        padding: '20px 16px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                        background: isSelected ? 'linear-gradient(145deg, rgba(250,204,21,0.15) 0%, rgba(24,24,27,0.8) 100%)' : 'rgba(24, 24, 27, 0.6)',
-                        border: `1px solid ${isSelected ? C.yellow : C.border}`, transition: 'all 0.2s', display: 'flex', flexDirection: 'column'
-                      }}>
+                      <button 
+                        key={cat} 
+                        onClick={() => { setActiveCat(cat); setSelected(null); }} 
+                        style={{
+                          padding: '20px 16px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                          background: isSelected ? 'linear-gradient(145deg, rgba(250,204,21,0.15) 0%, rgba(24,24,27,0.8) 100%)' : 'rgba(24, 24, 27, 0.6)',
+                          border: `1px solid ${isSelected ? C.yellow : C.border}`, transition: 'all 0.2s', display: 'flex', flexDirection: 'column'
+                        }}
+                      >
                         <div style={{ color: isSelected ? C.yellow : '#fff', fontWeight: 800, fontSize: 18, marginBottom: 12, lineHeight: 1.3 }}>
                           {m.name}<br />
                           <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9, color: isSelected ? C.yellow : C.muted }}>{m.sub || ' '}</span>
@@ -191,25 +205,39 @@ export default function BookingMap({ onRequireAuth }) {
                   {TARIFFS.map((t) => {
                     const isSelected = tariff.id === t.id;
                     return (
-                      <button key={t.id} onClick={() => setTariff(t)} style={{
-                        flex: 1, padding: '12px 4px', borderRadius: 6, cursor: 'pointer', border: 'none',
-                        background: isSelected ? C.yellow : 'transparent', color: isSelected ? '#000' : '#fff', transition: 'all 0.2s'
-                      }}>
+                      <button 
+                        key={t.id} 
+                        onClick={() => setTariff(t)} 
+                        style={{
+                          flex: 1, padding: '12px 4px', borderRadius: 6, cursor: 'pointer', border: 'none',
+                          background: isSelected ? C.yellow : 'transparent', color: isSelected ? '#000' : '#fff', transition: 'all 0.2s'
+                        }}
+                      >
                         <div style={{ fontWeight: 800, fontSize: 14 }}>{t.name}</div>
                         <div style={{ fontSize: 11, opacity: isSelected ? 0.8 : 0.5, marginTop: 2 }}>{t.sub}</div>
                       </button>
                     );
                   })}
                 </div>
+                
                 {tariff.type === 'hourly' && (
                   <div style={{ background: 'rgba(24, 24, 27, 0.6)', padding: '24px', borderRadius: 8, border: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                       <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>Тривалість сеансу:</span>
                       <span style={{ color: C.yellow, fontWeight: 800, fontSize: 18 }}>{hours} год.</span>
                     </div>
-                    <input type="range" min="1" max="12" value={hours} onChange={(e) => setHours(e.target.value)} className="cyber-slider" style={{ width: '100%' }} />
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="12" 
+                      value={hours} 
+                      onChange={(e) => setHours(e.target.value)} 
+                      className="cyber-slider" 
+                      style={{ width: '100%' }} 
+                    />
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: C.muted, fontSize: 11, marginTop: 8 }}>
-                      <span>1 год</span><span>12 год</span>
+                      <span>1 год</span>
+                      <span>12 год</span>
                     </div>
                   </div>
                 )}
@@ -226,16 +254,15 @@ export default function BookingMap({ onRequireAuth }) {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: C.yellow }} /> Обрано</span>
                   </div>
                 </div>
+                
                 <div style={{ background: 'rgba(24, 24, 27, 0.6)', padding: 24, borderRadius: 8, border: `1px solid ${C.border}` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
-                    
                     {zoneComputers.map((pc) => {
                       const isSelected = selected?.id === pc.id;
                       const down = !pc.isWorking;
                       
-                      // === СПРАВЖНЯ ЛОГІКА ЗАЙНЯТОСТІ ===
-                      // Якщо комп'ютера немає в масиві availablePcIds, значить він зайнятий!
-                      // (Також враховуємо, чи ми не в процесі перевірки, щоб не було мигання)
+                      // Логіка зайнятості
+                      // Якщо комп'ютера немає в масиві availablePcIds, значить він зайнятий
                       const isBooked = !isChecking && !availablePcIds.includes(pc.id); 
 
                       // Логіка кольорів кнопок
@@ -258,12 +285,17 @@ export default function BookingMap({ onRequireAuth }) {
                       }
 
                       return (
-                        <button key={pc.id} disabled={down || isBooked || isChecking} onClick={() => setSelected(pc)} style={{
-                          padding: '14px 12px', borderRadius: 6, fontWeight: 700, fontSize: 14, textAlign: 'left',
-                          background: btnBg, border: btnBorder, color: btnColor,
-                          cursor: (down || isBooked || isChecking) ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                          opacity: (isBooked || isChecking) ? 0.6 : 1
-                        }}>
+                        <button 
+                          key={pc.id} 
+                          disabled={down || isBooked || isChecking} 
+                          onClick={() => setSelected(pc)} 
+                          style={{
+                            padding: '14px 12px', borderRadius: 6, fontWeight: 700, fontSize: 14, textAlign: 'left',
+                            background: btnBg, border: btnBorder, color: btnColor,
+                            cursor: (down || isBooked || isChecking) ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                            opacity: (isBooked || isChecking) ? 0.6 : 1
+                          }}
+                        >
                           <div style={{ fontWeight: 800 }}>{pc.name}</div>
                           <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
                             {down ? 'на ремонті' : isChecking ? 'перевірка...' : isBooked ? 'зайнято' : `${Number(pc.pricePerHour)} ₴/год`}
@@ -279,21 +311,25 @@ export default function BookingMap({ onRequireAuth }) {
             {/* Чек */}
             <div style={{ background: 'linear-gradient(180deg, rgba(24,24,27,0.85) 0%, rgba(9,9,11,0.95) 100%)', padding: 40, borderRadius: 12, border: `1px solid ${C.yellow}`, position: 'sticky', top: 120 }}>
               <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 32, letterSpacing: 1 }}>ДЕТАЛІ БРОНЮВАННЯ</h3>
+              
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20, color: C.muted, marginBottom: 40 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14 }}>Зона:</span>
                   <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, textAlign: 'right' }}>{meta.name} {meta.sub}</span>
                 </div>
                 <div style={{ borderBottom: `1px dashed ${C.border}` }} />
+                
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14 }}>Комп’ютер:</span>
                   <span style={{ color: selected ? C.yellow : C.muted, fontWeight: 800, fontSize: 16 }}>{selected ? selected.name : 'Не обрано'}</span>
                 </div>
                 <div style={{ borderBottom: `1px dashed ${C.border}` }} />
+                
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14 }}>Тариф:</span>
                   <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{tariff.name}</span>
                 </div>
+                
                 {tariff.type === 'hourly' && (
                   <>
                     <div style={{ borderBottom: `1px dashed ${C.border}` }} />
@@ -304,15 +340,21 @@ export default function BookingMap({ onRequireAuth }) {
                   </>
                 )}
               </div>
+              
               <div style={{ borderTop: `2px solid ${C.border}`, paddingTop: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40 }}>
                 <span style={{ fontSize: 14, color: C.muted, fontWeight: 700, letterSpacing: 1, paddingBottom: 4 }}>ЗАГАЛОМ:</span>
                 <span style={{ fontSize: 42, fontWeight: 800, color: C.yellow, lineHeight: 1 }}>{calculateTotal()} ₴</span>
               </div>
-              <button disabled={isSubmitting || isChecking} onClick={handleBook} style={{
-                width: '100%', padding: '20px', background: C.yellow, color: '#000', border: 'none',
-                borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: (isSubmitting || isChecking) ? 'not-allowed' : 'pointer',
-                letterSpacing: 2, transition: 'all 0.2s', opacity: (isSubmitting || isChecking) ? 0.7 : 1
-              }}>
+              
+              <button 
+                disabled={isSubmitting || isChecking} 
+                onClick={handleBook} 
+                style={{
+                  width: '100%', padding: '20px', background: C.yellow, color: '#000', border: 'none',
+                  borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: (isSubmitting || isChecking) ? 'not-allowed' : 'pointer',
+                  letterSpacing: 2, transition: 'all 0.2s', opacity: (isSubmitting || isChecking) ? 0.7 : 1
+                }}
+              >
                 {isSubmitting ? 'ОБРОБКА...' : isAuthenticated ? 'ПІДТВЕРДИТИ' : 'УВІЙТИ Й ЗАБРОНЮВАТИ'}
               </button>
             </div>

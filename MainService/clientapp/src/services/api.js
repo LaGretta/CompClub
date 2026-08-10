@@ -17,10 +17,11 @@ const getHeaders = (requireAuth = false) => {
   return headers;
 };
 
-// Комп'ютери
+// 1. Комп'ютери
 export const computersApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/computers`);
+    if (!res.ok) throw new Error('Помилка завантаження комп\'ютерів');
     return res.json();
   },
 
@@ -37,6 +38,7 @@ export const computersApi = {
     const endDate = new Date(end).toISOString();
     
     const res = await fetch(`${API_BASE_URL}/computers/available?start=${startDate}&end=${endDate}`);
+    if (!res.ok) throw new Error('Помилка перевірки доступності комп\'ютерів');
     return res.json();
   }
 };
@@ -64,7 +66,8 @@ export const bookingsApi = {
     });
     
     if (!res.ok) {
-        const errorData = await res.json();
+        // Намагаємось витягнути деталі помилки з бекенду
+        const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || 'Не вдалося створити бронювання. Можливо, час вже зайнятий.');
     }
     return res.json();
@@ -81,10 +84,11 @@ export const bookingsApi = {
   }
 };
 
-// Акції
+// 3. Акції
 export const promotionsApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/promotions`);
+    if (!res.ok) throw new Error('Помилка завантаження акцій');
     return res.json();
   }
 };
