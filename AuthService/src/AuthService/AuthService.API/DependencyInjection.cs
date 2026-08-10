@@ -3,8 +3,11 @@ using AuthService.Api.Validators;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Domain.DTOs.Options;
 using AuthService.Domain.DTOs.Options.Cache;
+using AuthService.Shared.Abstractions;
 using AuthService.Storage;
 using AuthService.Storage.Interceptors;
+using AuthService.Storage.Repositories;
+using AuthService.Storage.Repositories.Abstractions;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -21,10 +24,18 @@ public static class DependencyInjection
         //options(appsettings.json->Dto->services)
         services.Configure<JwtOptions>(configuration.GetSection("Jwt")); //Jwt
         services.Configure<SessionOptions>(configuration.GetSection("Session"));//Session
+        // Доменні SessionOptions (Lifetime/IdleTimeout) — саме їх читає AuthService.
+        services.Configure<AuthService.Domain.DTOs.Options.SessionOptions>(configuration.GetSection("Session"));
         services.Configure<CacheOptions>(configuration.GetSection("Cache"));//Cache
-        //Manually services registration
+        //Manually services registration (Scrutor-скан вимкнено — реєструємо явно)
         services.AddScoped<IUnitOfWork>(s => s.GetRequiredService<AuthServiceContext>());
-        services.AddScoped<IAuthService>(s => s.GetRequiredService<Application.Services.AuthService>());
+        services.AddScoped<IAuthService, Application.Services.AuthService>();
+        services.AddScoped<IAuthRepository, AuthRepository>();
+        services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+        services.AddScoped<IMemoryCacheService, Application.Services.MemoryCacheService>();
+        services.AddScoped<IJwtService, Application.Services.JwtService>();
+        services.AddScoped<IRefreshTokenService, Application.Services.RefreshTokenService>();
+        services.AddScoped<IHttpCookieService, Application.Services.HttpCookieService>();
         //
         
         //packages

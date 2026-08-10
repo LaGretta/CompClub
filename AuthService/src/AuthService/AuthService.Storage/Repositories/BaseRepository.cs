@@ -12,15 +12,16 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace AuthService.Storage.Repositories;
 
-public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity: class
+public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity: class
 {
-    
+
     protected AuthServiceContext Context { get; init; }
     protected IMemoryCacheService MemoryCache { get; init; }
-    
-    protected BaseRepository(AuthServiceContext context)
+
+    public BaseRepository(AuthServiceContext context, IMemoryCacheService memoryCache)
     {
         Context = context;
+        MemoryCache = memoryCache;
     }
     
     public IQueryable<TEntity> Set(QueryExecutionOptions? options=null)
