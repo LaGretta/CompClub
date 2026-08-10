@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { bookingsApi, computersApi } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
@@ -18,6 +19,7 @@ const TARIFFS = [
 
 export default function BookingMap({ onRequireAuth }) {
   const { isAuthenticated } = useContext(AuthContext);
+  const { showToast } = useToast(); // <-- Дістаємо функцію показу повідомлень
 
   const [computers, setComputers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,12 +59,10 @@ export default function BookingMap({ onRequireAuth }) {
 
   const getBookingTimes = () => {
     let startTime = new Date();
-    // Скидаємо секунди, щоб бекенд отримував рівний час (без мілісекунд)
     startTime.setSeconds(0, 0); 
     let endTime = new Date(startTime);
 
     if (tariff.id === 'standard') {
-      // Буфер 5 хвилин
       startTime.setMinutes(startTime.getMinutes() + 5);
       endTime = new Date(startTime);
       endTime.setHours(startTime.getHours() + Number(hours));
@@ -90,7 +90,7 @@ export default function BookingMap({ onRequireAuth }) {
         setAvailablePcIds(availablePCs.map(pc => pc.id));
       }
     } catch (error) {
-      console.error("Помилка перевірки зайнятості:", error);
+      console.error("Не вдалося оновити статус комп'ютерів:", error);
     } finally {
       setIsChecking(false);
     }
@@ -98,7 +98,6 @@ export default function BookingMap({ onRequireAuth }) {
 
   useEffect(() => {
     fetchAvailable();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tariff, hours]);
 
   const calculateTotal = () => {
@@ -109,21 +108,27 @@ export default function BookingMap({ onRequireAuth }) {
   };
 
   const handleBook = async () => {
-    if (!selected) return alert('Оберіть комп’ютер (Крок 3)');
-    if (!isAuthenticated) { onRequireAuth?.(); return; }
+    if (!selected) {
+      showToast('Будь ласка, оберіть комп’ютер (Крок 3)', 'error');
+      return;
+    }
+    
+    if (!isAuthenticated) { 
+      onRequireAuth?.(); 
+      return; 
+    }
 
     setIsSubmitting(true);
     try {
       const { startTime, endTime } = getBookingTimes();
       await bookingsApi.create(selected.id, startTime, endTime);
       
-      alert('🎉 Успішно заброньовано! Деталі — у профілі.');
+      showToast('Успішно заброньовано! Деталі — у профілі.', 'success');
       setSelected(null);
       fetchAvailable();
 
     } catch (error) {
-      // ТЕПЕР ТУТ БУДЕ ТОЧНА ПОМИЛКА!
-      alert(`Помилка: ${error.message}`);
+      showToast(error.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -224,6 +229,7 @@ export default function BookingMap({ onRequireAuth }) {
                 </div>
                 <div style={{ background: 'rgba(24, 24, 27, 0.6)', padding: 24, borderRadius: 8, border: `1px solid ${C.border}` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                    
                     {zoneComputers.map((pc) => {
                       const isSelected = selected?.id === pc.id;
                       const down = !pc.isWorking;

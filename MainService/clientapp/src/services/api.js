@@ -1,5 +1,3 @@
-// Базова URL. Дані віддає той самий MainService (same-origin /api).
-// Локально можна перевизначити через VITE_API_BASE (напр. https://localhost:7262/api).
 const API_BASE_URL = import.meta.env.VITE_API_BASE ?? '/api';
 
 const getHeaders = (requireAuth = false) => {
@@ -17,7 +15,6 @@ const getHeaders = (requireAuth = false) => {
   return headers;
 };
 
-// Комп'ютери
 export const computersApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/computers`);
@@ -41,7 +38,6 @@ export const computersApi = {
   }
 };
 
-// Бронювання (тільки авторизовані)
 export const bookingsApi = {
   getMy: async () => {
     const res = await fetch(`${API_BASE_URL}/bookings/my`, {
@@ -51,49 +47,24 @@ export const bookingsApi = {
     return res.json();
   },
 
-  // Створити бронювання
   create: async (computerId, startTime, endTime) => {
-    const payload = {
-      computerId: Number(computerId), // Гарантуємо, що це int для C#
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString()
-    };
-
     const res = await fetch(`${API_BASE_URL}/bookings`, {
       method: 'POST',
       headers: getHeaders(true),
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        computerId: Number(computerId),
+        startTime: new Date(startTime).toISOString(),
+        endTime: new Date(endTime).toISOString()
+      })
     });
     
     if (!res.ok) {
-        // === РЕНТГЕН ПОМИЛОК ВІД C# БЕКЕНДУ ===
-        let errorMessage = `Помилка ${res.status}: `;
-        try {
-            const errorData = await res.json();
-            
-            if (errorData.errors) {
-                // C# FluentValidation помилки
-                errorMessage += Object.values(errorData.errors).flat().join(' | ');
-            } else if (errorData.detail) {
-                errorMessage += errorData.detail;
-            } else if (errorData.title) {
-                errorMessage += errorData.title;
-            } else if (errorData.message) {
-                errorMessage += errorData.message;
-            } else {
-                errorMessage += JSON.stringify(errorData);
-            }
-        } catch (e) {
-            // Якщо сервер повернув не JSON (наприклад 401 чи 500)
-            errorMessage += "Сервер відхилив запит (можливо, проблема з токеном).";
-        }
-        
-        throw new Error(errorMessage);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || 'Час вже зайнятий або недостатньо коштів.');
     }
     return res.json();
   },
 
-  // Скасувати бронювання
   cancel: async (bookingId) => {
     const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
       method: 'POST',
@@ -104,7 +75,6 @@ export const bookingsApi = {
   }
 };
 
-// Акції
 export const promotionsApi = {
   getAll: async () => {
     const res = await fetch(`${API_BASE_URL}/promotions`);
