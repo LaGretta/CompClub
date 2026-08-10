@@ -4,7 +4,6 @@ import { bookingsApi, computersApi } from '../services/api';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
-// Оформлення зон за категорією ПК з бекенду (0 Standard, 1 VIP, 2 PS5)
 const CATEGORY_META = {
   0: { name: 'СТАНДАРТ', sub: '', specs: ['RTX 5060 Ti', '144Hz IPS'] },
   1: { name: 'VIP', sub: 'BOOTCAMP', specs: ['RTX 5080', '360Hz OLED'] },
@@ -27,7 +26,7 @@ export default function BookingMap({ onRequireAuth }) {
   const [activeCat, setActiveCat] = useState(null);
   const [tariff, setTariff] = useState(TARIFFS[1]);
   const [hours, setHours] = useState(2);
-  const [selected, setSelected] = useState(null); // реальний обʼєкт компʼютера
+  const [selected, setSelected] = useState(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -44,7 +43,6 @@ export default function BookingMap({ onRequireAuth }) {
     [computers]
   );
 
-  // дефолтна категорія після завантаження
   useEffect(() => {
     if (activeCat === null && categories.length) setActiveCat(categories[0]);
   }, [categories, activeCat]);
@@ -116,7 +114,7 @@ export default function BookingMap({ onRequireAuth }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 48, alignItems: 'start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-              {/* КРОК 1 — зона (категорія) */}
+              
               <div>
                 <div style={{ color: C.muted, marginBottom: 16, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>1. ОБЕРІТЬ ЗОНУ</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
@@ -132,7 +130,7 @@ export default function BookingMap({ onRequireAuth }) {
                       }}>
                         <div style={{ color: isSelected ? C.yellow : '#fff', fontWeight: 800, fontSize: 18, marginBottom: 12, lineHeight: 1.3 }}>
                           {m.name}<br />
-                          <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9, color: isSelected ? C.yellow : C.muted }}>{m.sub || ' '}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9, color: isSelected ? C.yellow : C.muted }}>{m.sub || ' '}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
                           {m.specs.map((spec) => (
@@ -148,7 +146,6 @@ export default function BookingMap({ onRequireAuth }) {
                 </div>
               </div>
 
-              {/* КРОК 2 — тариф і час */}
               <div>
                 <div style={{ color: C.muted, marginBottom: 16, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>2. ТАРИФ ТА ЧАС</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'rgba(24, 24, 27, 0.6)', padding: 6, borderRadius: 8, border: `1px solid ${C.border}` }}>
@@ -179,7 +176,6 @@ export default function BookingMap({ onRequireAuth }) {
                 )}
               </div>
 
-              {/* КРОК 3 — реальні компʼютери зони */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
                   <div style={{ color: C.muted, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>3. ОБЕРІТЬ КОМП’ЮТЕР</div>
@@ -212,7 +208,6 @@ export default function BookingMap({ onRequireAuth }) {
               </div>
             </div>
 
-            {/* Чек */}
             <div style={{ background: 'linear-gradient(180deg, rgba(24,24,27,0.85) 0%, rgba(9,9,11,0.95) 100%)', padding: 40, borderRadius: 12, border: `1px solid ${C.yellow}`, position: 'sticky', top: 120 }}>
               <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 32, letterSpacing: 1 }}>ДЕТАЛІ БРОНЮВАННЯ</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20, color: C.muted, marginBottom: 40 }}>

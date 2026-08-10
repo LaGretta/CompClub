@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 
@@ -7,7 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [userName, setUserName] = useState(localStorage.getItem('userName') || null);
   
   // Стан для збереження аватарки
-  const [avatar, setAvatar] = useState(localStorage.getItem('userAvatar') || null);
+  const [avatar, setAvatar] = useState(null);
+
+  // Секрет збереження: коли змінюється юзер (хтось зайшов), підтягуємо його особисту аватарку
+  useEffect(() => {
+    if (userName) {
+      setAvatar(localStorage.getItem(`userAvatar_${userName}`) || null);
+    } else {
+      setAvatar(null);
+    }
+  }, [userName]);
   
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
 
@@ -21,17 +30,19 @@ export const AuthProvider = ({ children }) => {
 
   // Функція для оновлення аватарки
   const updateAvatar = (newAvatarUrl) => {
-    localStorage.setItem('userAvatar', newAvatarUrl);
-    setAvatar(newAvatarUrl);
+    if (userName) {
+      // Зберігаємо аватарку з прив'язкою до конкретного нікнейму (наприклад: userAvatar_Misha)
+      localStorage.setItem(`userAvatar_${userName}`, newAvatarUrl);
+      setAvatar(newAvatarUrl);
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userName');
-    localStorage.removeItem('userAvatar'); // Видаляємо аватарку при виході
+
     setToken(null);
     setUserName(null);
-    setAvatar(null);
     setIsAuthenticated(false);
   };
 

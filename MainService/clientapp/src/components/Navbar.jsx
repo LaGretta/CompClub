@@ -48,14 +48,15 @@ export default function Navbar() {
     };
   }, []);
 
+  // Функція розумно обробляє всі переходи і скролить вгору
   const handleNavigation = ({ id, path }) => {
     setIsMobileMenuOpen(false); 
     if (location.pathname !== path) {
       navigate(path);
       setTimeout(() => {
         if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-        else window.scrollTo(0, 0);
-      }, 100);
+        else window.scrollTo(0, 0); 
+      }, 50);
     } else {
       if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
       else window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -94,7 +95,7 @@ export default function Navbar() {
               <div style={{ flexShrink: 0 }}>
                 {isAuthenticated ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div onClick={() => navigate('/profile')} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                    <div onClick={() => handleNavigation({ path: '/profile' })} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                       <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#18181b', border: `2px solid ${C.yellow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {avatar ? (
                           <img src={avatar} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -110,7 +111,7 @@ export default function Navbar() {
                       </div>
                     </div>
                     
-                    <button onClick={() => { logout(); navigate('/'); }} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = C.muted} title="Вийти">
+                    <button onClick={() => { logout(); handleNavigation({ path: '/' }); }} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = C.muted} title="Вийти">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -167,7 +168,7 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <div onClick={() => handleNavigation({ path: '/profile' })} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#18181b', border: `2px solid ${C.yellow}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {avatar ? (
                       <img src={avatar} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -183,7 +184,7 @@ export default function Navbar() {
                   </div>
                 </div>
                 
-                <button onClick={() => { setIsMobileMenuOpen(false); logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '16px', cursor: 'pointer', marginTop: '8px' }}>
+                <button onClick={() => { logout(); handleNavigation({ path: '/' }); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '16px', cursor: 'pointer', marginTop: '8px' }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>

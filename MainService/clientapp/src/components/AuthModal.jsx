@@ -3,8 +3,6 @@ import { AuthContext } from '../context/AuthContext';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
-// Авторизацію (login/register) видає AuthService — задай його URL через VITE_AUTH_BASE,
-// напр. https://auth-production.up.railway.app/api. Дефолт /api — той самий домен.
 const API_BASE_URL = import.meta.env.VITE_AUTH_BASE || '/api';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
@@ -12,9 +10,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Стан для відображення пароля
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Поля форм
   const [loginInput, setLoginInput] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -26,7 +23,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    // Базові перевірки
+    
     if (isLoginTab) {
       if (!loginInput || !password) {
         setError("Будь ласка, заповніть всі поля!");
@@ -47,7 +44,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
    
     try {
       if (isLoginTab) {
-        // Запит на вхід
         const response = await fetch(`${API_BASE_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -61,10 +57,29 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         if (response.ok) {
           const data = await response.json();
 
-          // Оновлюємо ГЛОБАЛЬНИЙ стан: зберігаємо токен + isAuthenticated=true.
-          // Без цього Navbar/BookingMap (які читають AuthContext) лишались у стані "гість".
-          login(data.accessToken, loginInput);
-          onLoginSuccess?.({ name: loginInput, token: data.accessToken });
+          // === МАГІЯ: ДІСТАЄМО НІКНЕЙМ ===
+          let realName = loginInput;
+          try {
+            const base64Url = data.accessToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const payload = JSON.parse(jsonPayload);
+            
+            realName = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || payload.name || payload.unique_name || loginInput;
+          } catch (e) {
+            console.error("Не вдалося розпарсити токен");
+          }
+
+          // Якщо ми досі маємо email, відрізаємо 'хвіст'
+          if (realName.includes('@')) {
+             realName = realName.split('@')[0];
+          }
+          // ================================
+
+          login(data.accessToken, realName); // Передаємо виправлене ім'я
+          onLoginSuccess?.({ name: realName, token: data.accessToken });
 
           setLoading(false);
           onClose();
@@ -75,7 +90,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         }
 
       } else {
-        // Запит на реєстрацію
         const response = await fetch(`${API_BASE_URL}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -102,7 +116,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
     } catch (err) {
       console.error('Помилка мережі:', err);
-      // Якщо бекенд ще не запущений, виводимо зрозумілу помилку
       if (err.message === 'Failed to fetch') {
         setError('Сервер недоступний. Можливо, бекенд зараз вимкнений.');
       } else {
@@ -127,7 +140,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       <div onClick={e => e.stopPropagation()} style={{
         background: C.surface, border: `1px solid ${C.yellow}`, borderRadius: 12,
         width: '100%', maxWidth: '420px', padding: '40px 32px', position: 'relative',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(250,204,21,0.05)'
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(250,204,21,0.05)',
+        maxHeight: '90vh', overflowY: 'auto'
       }}>
         
         <button onClick={onClose} style={{
