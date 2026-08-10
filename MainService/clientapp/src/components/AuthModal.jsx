@@ -43,7 +43,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     }
 
     setLoading(true);
+    console.log("ENV:", import.meta.env.VITE_AUTH_BASE);
 
+    console.log("API:", API_BASE_URL);
     try {
       if (isLoginTab) {
         // Запит на вхід
