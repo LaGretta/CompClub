@@ -16,6 +16,19 @@ export default function Profile() {
   // Стейт для реальних бронювань
   const [bookings, setBookings] = useState([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
+
+  const handleCancel = async (id) => {
+    setCancellingId(id);
+    try {
+      await bookingsApi.cancel(id);
+      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
+    } catch (e) {
+      alert('Не вдалося скасувати: ' + e.message);
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   // Завантажуємо бронювання при відкритті сторінки
   useEffect(() => {
@@ -193,12 +206,21 @@ export default function Profile() {
                             <span style={{ fontSize: '22px', fontWeight: 900, color: C.yellow, textShadow: '0 0 10px rgba(250,204,21,0.2)' }}>
                               {booking.totalPrice} ₴
                             </span>
-                            <span style={{ 
+                            <span style={{
                               fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '6px', letterSpacing: '1px', textTransform: 'uppercase',
                               background: statusInfo.bg, color: statusInfo.color, border: `1px solid ${statusInfo.border}`
                             }}>
                               {statusInfo.text}
                             </span>
+                            {booking.status === 0 && (
+                              <button
+                                onClick={() => handleCancel(booking.id)}
+                                disabled={cancellingId === booking.id}
+                                style={{ background: 'none', border: `1px solid rgba(239,68,68,0.4)`, color: '#ef4444', fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', cursor: cancellingId === booking.id ? 'not-allowed' : 'pointer', letterSpacing: '1px' }}
+                              >
+                                {cancellingId === booking.id ? '...' : 'СКАСУВАТИ'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </Reveal>
