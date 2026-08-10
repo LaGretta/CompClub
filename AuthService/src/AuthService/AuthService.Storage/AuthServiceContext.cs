@@ -17,6 +17,8 @@ public class AuthServiceContext : DbContext, IUnitOfWork
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        builder.HasDefaultSchema("auth");
+    
         builder.ApplyConfigurationsFromAssembly(typeof(SessionConfiguration).Assembly);
         builder.ApplyConfigurationsFromAssembly(typeof(UserConfiguration).Assembly);
         builder.ApplyConfigurationsFromAssembly(typeof(RoleConfiguration).Assembly);
