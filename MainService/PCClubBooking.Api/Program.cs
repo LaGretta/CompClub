@@ -71,7 +71,17 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     if (db.Database.IsRelational())
     {
-        await db.Database.MigrateAsync();
+        try
+        {
+            await db.Database.MigrateAsync();
+        }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState is "42P07" or "42710")
+        {
+            // Схема лишилась від попередньої (несумісної) версії міграцій — перестворюємо чисто.
+            // Спрацьовує ЛИШЕ у конфліктному стані; на здоровій базі цей блок не виконується.
+            await db.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+            await db.Database.MigrateAsync();
+        }
         await SeedData.SeedAsync(db);
     }
 }
