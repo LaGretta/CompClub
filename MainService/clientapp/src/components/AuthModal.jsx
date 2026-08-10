@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
@@ -7,6 +8,7 @@ const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090
 const API_BASE_URL = import.meta.env.VITE_AUTH_BASE || '/api';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
+  const { login } = useContext(AuthContext);
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,13 +59,13 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         });
 
         if (response.ok) {
-          const data = await response.json(); 
-          
-          onLoginSuccess({ 
-            name: loginInput, 
-            token: data.accessToken 
-          });
-          
+          const data = await response.json();
+
+          // Оновлюємо ГЛОБАЛЬНИЙ стан: зберігаємо токен + isAuthenticated=true.
+          // Без цього Navbar/BookingMap (які читають AuthContext) лишались у стані "гість".
+          login(data.accessToken, loginInput);
+          onLoginSuccess?.({ name: loginInput, token: data.accessToken });
+
           setLoading(false);
           onClose();
         } else {
