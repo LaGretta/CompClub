@@ -24,9 +24,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-     console.log("ENV:", import.meta.env.VITE_AUTH_BASE);
-
-    console.log("API:", API_BASE_URL);
     // Базові перевірки
     if (isLoginTab) {
       if (!loginInput || !password) {
