@@ -133,6 +133,7 @@ public class AuthService : IAuthService
         string hashedRefreshToken = HasherUtil.Hash(refreshToken);
         var newSession = new Session()
         {
+            UserId = user.Id,
             UserAgent = request.UserAgent,
             TokenHash = hashedRefreshToken,
             IpAddress = request.IpAddress,
