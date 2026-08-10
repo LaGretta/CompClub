@@ -4,7 +4,7 @@ const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090
 
 // Авторизацію (login/register) видає AuthService — задай його URL через VITE_AUTH_BASE,
 // напр. https://auth-production.up.railway.app/api. Дефолт /api — той самий домен.
-const API_BASE_URL = import.meta.env.VITE_AUTH_BASE ?? '/api';
+const API_BASE_URL = import.meta.env.VITE_AUTH_BASE || '/api';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isLoginTab, setIsLoginTab] = useState(true);

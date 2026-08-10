@@ -29,7 +29,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       // Відправляємо запит на видалення сесії та куки на сервері
-      await fetch(`${import.meta.env.VITE_AUTH_BASE ?? '/api'}/logout`, {
+      await fetch(`${import.meta.env.VITE_AUTH_BASE || '/api'}/logout`, {
       method: 'DELETE',
       credentials: 'include'
   });

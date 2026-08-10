@@ -7,6 +7,11 @@ WORKDIR /client
 COPY clientapp/package*.json ./
 RUN npm ci
 
+# Vite запікає VITE_* на етапі build → змінну треба ОГОЛОСИТИ як ARG,
+# щоб Railway передав її build-arg`ом у npm run build. Без цього значення порожнє.
+ARG VITE_AUTH_BASE
+ENV VITE_AUTH_BASE=$VITE_AUTH_BASE
+
 # Решта фронту і збірка у /client/dist
 COPY clientapp/ ./
 RUN npm run build
