@@ -11,11 +11,15 @@ namespace AuthService.Storage.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "auth");
+
             migrationBuilder.CreateTable(
                 name: "Roles",
+                schema: "auth",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "NEWSEQUENTIALID()"),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
                     Name = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
@@ -25,9 +29,10 @@ namespace AuthService.Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Users",
+                schema: "auth",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "NEWSEQUENTIALID()"),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
                     UserName = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
@@ -43,9 +48,10 @@ namespace AuthService.Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Sessions",
+                schema: "auth",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "NEWSEQUENTIALID()"),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "gen_random_uuid()"),
                     TokenHash = table.Column<string>(type: "text", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -62,6 +68,7 @@ namespace AuthService.Storage.Migrations
                     table.ForeignKey(
                         name: "FK_Sessions_Users_UserId",
                         column: x => x.UserId,
+                        principalSchema: "auth",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -69,6 +76,7 @@ namespace AuthService.Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "UserRoles",
+                schema: "auth",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -81,12 +89,14 @@ namespace AuthService.Storage.Migrations
                     table.ForeignKey(
                         name: "FK_UserRoles_Roles_RoleId",
                         column: x => x.RoleId,
+                        principalSchema: "auth",
                         principalTable: "Roles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserRoles_Users_UserId",
                         column: x => x.UserId,
+                        principalSchema: "auth",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -94,16 +104,19 @@ namespace AuthService.Storage.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sessions_UserId",
+                schema: "auth",
                 table: "Sessions",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
+                schema: "auth",
                 table: "UserRoles",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
+                schema: "auth",
                 table: "Users",
                 column: "Email",
                 unique: true);
@@ -113,16 +126,20 @@ namespace AuthService.Storage.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Sessions");
+                name: "Sessions",
+                schema: "auth");
 
             migrationBuilder.DropTable(
-                name: "UserRoles");
+                name: "UserRoles",
+                schema: "auth");
 
             migrationBuilder.DropTable(
-                name: "Roles");
+                name: "Roles",
+                schema: "auth");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Users",
+                schema: "auth");
         }
     }
 }
