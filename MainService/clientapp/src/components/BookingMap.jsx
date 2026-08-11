@@ -18,8 +18,8 @@ const TARIFFS = [
 ];
 
 export default function BookingMap({ onRequireAuth }) {
-  const { isAuthenticated } = useContext(AuthContext);
-  const { showToast } = useToast(); // <-- Дістаємо функцію показу повідомлень
+  const { isAuthenticated, balance, updateBalance } = useContext(AuthContext);
+  const { showToast } = useToast(); 
 
   const [computers, setComputers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +98,7 @@ export default function BookingMap({ onRequireAuth }) {
 
   useEffect(() => {
     fetchAvailable();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tariff, hours]);
 
   const calculateTotal = () => {
@@ -118,12 +119,40 @@ export default function BookingMap({ onRequireAuth }) {
       return; 
     }
 
+    const totalCost = calculateTotal();
+    
+    //ПЕРЕВІРКА БАЛАНСУ
+    if (balance < totalCost) {
+      showToast('Недостатньо коштів на балансі! Поповніть рахунок у профілі.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { startTime, endTime } = getBookingTimes();
+      
+      //ПЕРЕВІРКА НАКЛАДОК ЧАСУ
+      const myBookings = await bookingsApi.getMy();
+      
+      const hasOverlap = myBookings.some(b => {
+        if (b.status !== 0) return false;
+        const bStart = new Date(b.startTime);
+        const bEnd = new Date(b.endTime);
+        return (startTime < bEnd && endTime > bStart);
+      });
+
+      if (hasOverlap) {
+        showToast('У вас вже є активне бронювання, яке збігається з цим часом!', 'error');
+        setIsSubmitting(false);
+        return; 
+      }
+
+      //БРОНЮВАННЯ ТА СПИСАННЯ КОШТІВ
       await bookingsApi.create(selected.id, startTime, endTime);
       
-      showToast('Успішно заброньовано! Деталі — у профілі.', 'success');
+      updateBalance(balance - totalCost);
+      
+      showToast('Успішно заброньовано! Кошти списано з балансу.', 'success');
       setSelected(null);
       fetchAvailable();
 

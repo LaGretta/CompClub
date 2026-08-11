@@ -7,8 +7,40 @@ import { bookingsApi } from '../services/api';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214', surfaceLight: '#18181b' };
 
+// === ХУК ДЛЯ ПЛАВНОЇ АНІМАЦІЇ ЧИСЕЛ (Баланс) ===
+function useAnimatedBalance(targetValue, duration = 800) {
+  const [displayValue, setDisplayValue] = useState(targetValue);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    const startValue = displayValue;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      
+      // Функція плавності (Ease Out Cubic)
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentVal = Math.floor(startValue + (targetValue - startValue) * easeOut);
+      
+      setDisplayValue(currentVal);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        setDisplayValue(targetValue);
+      }
+    };
+
+    window.requestAnimationFrame(step);
+  }, [targetValue]);
+
+  return displayValue;
+}
+
 export default function Profile() {
-  const { isAuthenticated, userName, avatar, logout, updateAvatar } = useContext(AuthContext);
+  // Витягуємо balance та updateBalance з контексту
+  const { isAuthenticated, userName, avatar, balance, logout, updateAvatar, updateBalance } = useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
   
@@ -19,12 +51,29 @@ export default function Profile() {
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
 
-  const handleCancel = async (id) => {
+  // Стан для мобільної адаптивності
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 992);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Підключаємо анімований баланс
+  const animatedBalance = useAnimatedBalance(balance || 0);
+
+  // === ЛОГІКА СКАСУВАННЯ ТА ПОВЕРНЕННЯ КОШТІВ ===
+  const handleCancel = async (id, price) => {
     setCancellingId(id);
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
-      showToast('Бронювання успішно скасовано!', 'success');
+      
+      // Додаємо гроші назад на баланс
+      updateBalance((balance || 0) + price);
+      
+      showToast('Бронювання успішно скасовано! Кошти повернено на баланс.', 'success');
     } catch (e) {
       showToast(`Не вдалося скасувати: ${e.message}`, 'error');
     } finally {
@@ -37,7 +86,8 @@ export default function Profile() {
       const fetchMyBookings = async () => {
         try {
           const data = await bookingsApi.getMy();
-          setBookings(data);
+          // Сортуємо бронювання, щоб новіші були зверху
+          setBookings(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
         } catch (error) {
           console.error("Не вдалося завантажити бронювання", error);
         } finally {
@@ -80,18 +130,19 @@ export default function Profile() {
     WebkitBackdropFilter: 'blur(12px)',
     border: `1px solid rgba(63, 63, 70, 0.5)`,
     borderRadius: '16px',
-    padding: '32px',
+    padding: isMobile ? '20px' : '32px',
     boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
     position: 'relative',
     overflow: 'hidden'
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', paddingTop: '120px', paddingBottom: '80px', color: '#fff', fontFamily: "'Rajdhani', sans-serif" }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingTop: isMobile ? '90px' : '120px', paddingBottom: '80px', color: '#fff', fontFamily: "'Rajdhani', sans-serif", overflowX: 'hidden' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '0 16px' : '0 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '32px' }}>
         
-        <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Reveal direction="left" delay={100}>
+        {/*Ліва колонка (Профіль та Баланс)*/}
+        <div style={{ flex: isMobile ? '1 1 100%' : '1 1 350px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Reveal direction={isMobile ? "up" : "left"} delay={100}>
             <div style={{ ...glassCardStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)', width: '200px', height: '100px', background: C.yellow, filter: 'blur(80px)', opacity: 0.1 }}></div>
 
@@ -127,7 +178,7 @@ export default function Profile() {
 
               <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
               
-              <h2 style={{ fontSize: '32px', fontWeight: 900, margin: '0 0 4px 0', letterSpacing: '1.5px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', zIndex: 2 }}>
+              <h2 style={{ fontSize: isMobile ? '26px' : '32px', fontWeight: 900, margin: '0 0 4px 0', letterSpacing: '1.5px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', zIndex: 2, textAlign: 'center', wordBreak: 'break-all' }}>
                 {userName || 'ГРАВЕЦЬ'}
               </h2>
               <span style={{ background: 'rgba(250, 204, 21, 0.1)', color: C.yellow, fontSize: '12px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', padding: '6px 12px', borderRadius: '999px', marginBottom: '32px', border: `1px solid rgba(250, 204, 21, 0.3)`, zIndex: 2 }}>
@@ -150,21 +201,23 @@ export default function Profile() {
               <div style={{ position: 'absolute', bottom: '-40px', right: '-40px', width: '150px', height: '150px', background: C.yellow, filter: 'blur(60px)', opacity: 0.15, borderRadius: '50%' }}></div>
               <p style={{ margin: '0 0 8px 0', color: C.muted, fontWeight: 700, fontSize: '14px', letterSpacing: '2px', textTransform: 'uppercase' }}>Твій баланс</p>
               <h3 style={{ margin: '0 0 24px 0', fontSize: '48px', fontWeight: 900, color: C.yellow, letterSpacing: '2px', textShadow: '0 0 20px rgba(250,204,21,0.3)' }}>
-                150 <span style={{ fontSize: '24px', color: '#fff' }}>₴</span>
+                {animatedBalance} <span style={{ fontSize: '24px', color: '#fff' }}>₴</span>
               </h3>
               <button 
+                onClick={() => { updateBalance((balance || 0) + 500); showToast('Баланс успішно поповнено на 500 ₴!', 'success'); }}
                 style={{ width: '100%', padding: '16px', background: C.yellow, color: '#000', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 900, cursor: 'pointer', letterSpacing: '1px', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(250, 204, 21, 0.3)', position: 'relative', zIndex: 2 }} 
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(250, 204, 21, 0.5)'; }} 
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(250, 204, 21, 0.3)'; }}
               >
-                ПОПОВНИТИ РАХУНОК
+                ПОПОВНИТИ РАХУНОК (+500)
               </button>
             </div>
           </Reveal>
         </div>
 
-        <div style={{ flex: '2 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Reveal direction="right" delay={300}>
+        {/*Права колонка (Реальні бронювання)*/}
+        <div style={{ flex: isMobile ? '1 1 100%' : '2 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Reveal direction={isMobile ? "up" : "right"} delay={300}>
             <div style={glassCardStyle}>
               <h3 style={{ margin: '0 0 32px 0', fontSize: '24px', fontWeight: 900, letterSpacing: '1.5px', display: 'flex', alignItems: 'center', gap: '12px', textTransform: 'uppercase' }}>
                 <span style={{ width: '12px', height: '24px', background: C.yellow, borderRadius: '4px', display: 'inline-block', boxShadow: '0 0 10px rgba(250,204,21,0.5)' }}></span>
@@ -182,15 +235,19 @@ export default function Profile() {
                     const dateString = `${startDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}, ${startDate.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 
                     return (
-                      <Reveal key={booking.id} direction="up" delay={400 + (index * 100)}>
+                      <Reveal key={booking.id} direction="up" delay={isMobile ? 100 : 400 + (index * 100)}>
                         <div 
                           style={{ 
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', flexWrap: 'wrap', gap: '16px',
+                            display: 'flex', 
+                            flexDirection: isMobile ? 'column' : 'row', 
+                            justifyContent: 'space-between', 
+                            alignItems: isMobile ? 'flex-start' : 'center', 
+                            padding: '24px', gap: '16px',
                             background: 'rgba(255, 255, 255, 0.02)', border: `1px solid rgba(255, 255, 255, 0.05)`, 
                             borderRadius: '12px', transition: 'all 0.3s ease', cursor: 'default'
                           }} 
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.transform = 'translateX(8px)'; e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.2)'; }} 
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'; }}
+                          onMouseEnter={e => { if(!isMobile) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.transform = 'translateX(8px)'; e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.2)'; } }} 
+                          onMouseLeave={e => { if(!isMobile) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'; } }}
                         >
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <span style={{ fontSize: '20px', fontWeight: 900, color: '#fff', letterSpacing: '1px' }}>
@@ -201,7 +258,7 @@ export default function Profile() {
                             </span>
                           </div>
                           
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                          <div style={{ display: 'flex', flexDirection: isMobile ? 'row-reverse' : 'column', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto', gap: '10px', marginTop: isMobile ? '8px' : '0' }}>
                             <span style={{ fontSize: '22px', fontWeight: 900, color: C.yellow, textShadow: '0 0 10px rgba(250,204,21,0.2)' }}>
                               {booking.totalPrice} ₴
                             </span>
@@ -211,11 +268,14 @@ export default function Profile() {
                             }}>
                               {statusInfo.text}
                             </span>
+                            {/* Передаємо ціну при скасуванні, щоб повернути її на баланс */}
                             {booking.status === 0 && (
                               <button
-                                onClick={() => handleCancel(booking.id)}
+                                onClick={() => handleCancel(booking.id, booking.totalPrice)}
                                 disabled={cancellingId === booking.id}
-                                style={{ background: 'none', border: `1px solid rgba(239,68,68,0.4)`, color: '#ef4444', fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', cursor: cancellingId === booking.id ? 'not-allowed' : 'pointer', letterSpacing: '1px' }}
+                                style={{ background: 'none', border: `1px solid rgba(239,68,68,0.4)`, color: '#ef4444', fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', cursor: cancellingId === booking.id ? 'not-allowed' : 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
                               >
                                 {cancellingId === booking.id ? '...' : 'СКАСУВАТИ'}
                               </button>
@@ -232,7 +292,7 @@ export default function Profile() {
                 )}
               </div>
               
-              <Reveal direction="up" delay={700}>
+              <Reveal direction="up" delay={isMobile ? 100 : 700}>
                 <button 
                   onClick={() => { navigate('/'); setTimeout(() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
                   style={{ marginTop: '32px', width: '100%', padding: '18px', background: 'rgba(250, 204, 21, 0.05)', color: C.yellow, border: `1px dashed rgba(250, 204, 21, 0.4)`, borderRadius: '12px', fontSize: '16px', fontWeight: 900, cursor: 'pointer', letterSpacing: '2px', transition: 'all 0.2s' }} 
