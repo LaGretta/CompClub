@@ -10,25 +10,3 @@
 
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PCClubBooking;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;"
-
-    depends_on:
-      - sqlserver
-
-
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "YourStrongPassword123!"
-
-    ports:
-      - "1434:1433"
-
-    volumes:
-      - sqlserver-data:/var/opt/mssql
-
-
-volumes:
-  sqlserver-data:
