@@ -29,7 +29,7 @@ flowchart LR
     Main -. "валідує JWT, підписаний Auth" .-> Auth
 ```
 
-- **MainService** — моя частина: Onion-архітектура (.NET 10), PostgreSQL, EF Core.
+- **MainService** — Onion-архітектура (.NET 10), PostgreSQL, EF Core.
   Віддає REST API бронювання **і** статику React-фронта (SPA) з `wwwroot`.
   Лише **валідує** JWT (не видає).
 - **AuthService** — сервіс авторизації (.NET 8): реєстрація/логін/refresh/logout,
