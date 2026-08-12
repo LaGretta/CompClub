@@ -30,7 +30,6 @@ packages/
 
 # ASP.NET
 appsettings.Development.json
-appsettings.json
 
 # Entity Framework
 Migrations/*.Designer.cs
