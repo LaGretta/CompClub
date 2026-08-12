@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
 
@@ -7,7 +7,29 @@ export const AuthProvider = ({ children }) => {
   const [userName, setUserName] = useState(localStorage.getItem('userName') || null);
   
   // Стан для збереження аватарки
-  const [avatar, setAvatar] = useState(localStorage.getItem('userAvatar') || null);
+  const [avatar, setAvatar] = useState(null);
+  
+  // Стан для балансу
+  const [balance, setBalance] = useState(0);
+
+  // Секрет збереження: коли змінюється юзер, підтягуємо його дані
+  useEffect(() => {
+    if (userName) {
+      setAvatar(localStorage.getItem(`userAvatar_${userName}`) || null);
+      
+      // Ініціалізація балансу: якщо немає, даруємо 2000 ₴
+      const savedBalance = localStorage.getItem(`userBalance_${userName}`);
+      if (savedBalance !== null) {
+        setBalance(Number(savedBalance));
+      } else {
+        localStorage.setItem(`userBalance_${userName}`, 2000);
+        setBalance(2000);
+      }
+    } else {
+      setAvatar(null);
+      setBalance(0);
+    }
+  }, [userName]);
   
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
 
@@ -21,22 +43,31 @@ export const AuthProvider = ({ children }) => {
 
   // Функція для оновлення аватарки
   const updateAvatar = (newAvatarUrl) => {
-    localStorage.setItem('userAvatar', newAvatarUrl);
-    setAvatar(newAvatarUrl);
+    if (userName) {
+      localStorage.setItem(`userAvatar_${userName}`, newAvatarUrl);
+      setAvatar(newAvatarUrl);
+    }
+  };
+
+  // Функція для оновлення балансу (списання / поповнення)
+  const updateBalance = (newBalance) => {
+    if (userName) {
+      localStorage.setItem(`userBalance_${userName}`, newBalance);
+      setBalance(newBalance);
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userName');
-    localStorage.removeItem('userAvatar'); // Видаляємо аватарку при виході
+
     setToken(null);
     setUserName(null);
-    setAvatar(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated, userName, avatar, login, logout, updateAvatar }}>
+    <AuthContext.Provider value={{ token, isAuthenticated, userName, avatar, balance, login, logout, updateAvatar, updateBalance }}>
       {children}
     </AuthContext.Provider>
   );

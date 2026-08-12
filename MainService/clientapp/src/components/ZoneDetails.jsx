@@ -9,6 +9,7 @@ const ZONES_INFO = [
     name: 'СТАНДАРТ',
     desc: 'Ідеальний баланс для комфортної гри з друзями на високих налаштуваннях.',
     price: 'від 100 ₴ / год',
+    isPopular: false,
     pc: [
       { label: 'GPU', val: 'GeForce RTX 5060 TI' },
       { label: 'CPU', val: 'Intel Core i5-13400F' },
@@ -22,29 +23,11 @@ const ZONES_INFO = [
     ]
   },
   {
-    id: 'pro',
-    name: 'PRO (CS2 / DOTA 2)',
-    desc: 'Турнірний стандарт. Максимальний FPS та ідеальна точність для змагань.',
-    price: 'від 140 ₴ / год',
-    isPopular: true,
-    pc: [
-      { label: 'GPU', val: 'GeForce RTX 5070 TI SUPER' },
-      { label: 'CPU', val: 'Intel Core i7-14700KF' },
-      { label: 'RAM', val: '32GB DDR5 6000MHz' },
-      { label: 'Монітор', val: '25" Zowie 240Hz (DyAc+)' }
-    ],
-    devices: [
-      { label: 'Клавіатура', val: 'Logitech G Pro X TKL' },
-      { label: 'Миша', val: 'Кастомні (Сенсор PixArt 3950)' },
-      { label: 'Гарнітура', val: 'SteelSeries Arctis Nova 1' },
-      { label: 'Килимок', val: 'Premium Speed & Control' }
-    ]
-  },
-  {
     id: 'vip',
     name: 'VIP BOOTCAMP',
     desc: 'Ультимативний геймінг. Закрита кімната для команди з найкращим залізом на ринку.',
     price: 'від 200 ₴ / год',
+    isPopular: true,
     pc: [
       { label: 'GPU', val: 'GeForce RTX 5080 TI SUPER' },
       { label: 'CPU', val: 'Intel Core i9-14900K' },
@@ -55,6 +38,24 @@ const ZONES_INFO = [
       { label: 'Клавіатура', val: 'Razer Huntsman V3 Pro' },
       { label: 'Миша', val: 'Logitech G Pro X Superlight 2' },
       { label: 'Гарнітура', val: 'SteelSeries Arctis Nova 3' }
+    ]
+  },
+  {
+    id: 'ps5',
+    name: 'PS5 CONSOLE',
+    desc: 'Максимальний релакс. Зручні дивани, великий екран та ексклюзиви PlayStation.',
+    price: 'від 150 ₴ / год',
+    isPopular: false,
+    pc: [
+      { label: 'Консоль', val: 'Sony PlayStation 5' },
+      { label: 'Екран', val: 'ТБ Samsung 65" 4K UHD' },
+      { label: 'Сховище', val: '1TB Custom NVMe SSD' },
+      { label: 'Частота', val: 'До 120 FPS / 4K' }
+    ],
+    devices: [
+      { label: 'Геймпади', val: '2x DualSense Wireless' },
+      { label: 'Посадка', val: 'Шкіряний диван на 3 місця' },
+      { label: 'Ігри', val: 'FC 26, MK 1, UFC 5 та ін.' }
     ]
   }
 ];
@@ -103,7 +104,7 @@ export default function ZoneDetails() {
 
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.yellow, letterSpacing: 2, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    🖥 СИСТЕМНИЙ БЛОК
+                    {zone.id === 'ps5' ? '🎮 КОНСОЛЬ' : '🖥 СИСТЕМНИЙ БЛОК'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {zone.pc.map((item, idx) => (
@@ -117,7 +118,7 @@ export default function ZoneDetails() {
 
                 <div style={{ marginBottom: 32, flexGrow: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.yellow, letterSpacing: 2, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    🖱 ДЕВАЙСИ
+                    {zone.id === 'ps5' ? '🎮 ДЕВАЙСИ ТА ПОСАДКА' : '🖱 ДЕВАЙСИ'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {zone.devices.map((item, idx) => (

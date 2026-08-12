@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { bookingsApi, computersApi } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', surface: '#18181b', bg: '#09090b', border: '#3f3f46' };
 
-// Оформлення зон за категорією ПК з бекенду (0 Standard, 1 VIP, 2 PS5)
 const CATEGORY_META = {
   0: { name: 'СТАНДАРТ', sub: '', specs: ['RTX 5060 Ti', '144Hz IPS'] },
   1: { name: 'VIP', sub: 'BOOTCAMP', specs: ['RTX 5080', '360Hz OLED'] },
@@ -18,7 +18,8 @@ const TARIFFS = [
 ];
 
 export default function BookingMap({ onRequireAuth }) {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, balance, updateBalance } = useContext(AuthContext);
+  const { showToast } = useToast(); 
 
   const [computers, setComputers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +28,11 @@ export default function BookingMap({ onRequireAuth }) {
   const [activeCat, setActiveCat] = useState(null);
   const [tariff, setTariff] = useState(TARIFFS[1]);
   const [hours, setHours] = useState(2);
-  const [selected, setSelected] = useState(null); // реальний обʼєкт компʼютера
+  const [selected, setSelected] = useState(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [availablePcIds, setAvailablePcIds] = useState([]);
+  const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -44,7 +48,6 @@ export default function BookingMap({ onRequireAuth }) {
     [computers]
   );
 
-  // дефолтна категорія після завантаження
   useEffect(() => {
     if (activeCat === null && categories.length) setActiveCat(categories[0]);
   }, [categories, activeCat]);
@@ -54,6 +57,50 @@ export default function BookingMap({ onRequireAuth }) {
     [computers, activeCat]
   );
 
+  const getBookingTimes = () => {
+    let startTime = new Date();
+    startTime.setSeconds(0, 0); 
+    let endTime = new Date(startTime);
+
+    if (tariff.id === 'standard') {
+      startTime.setMinutes(startTime.getMinutes() + 5);
+      endTime = new Date(startTime);
+      endTime.setHours(startTime.getHours() + Number(hours));
+    } else if (tariff.id === 'morning') {
+      startTime.setHours(8, 0, 0, 0);
+      if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
+      endTime = new Date(startTime);
+      endTime.setHours(14, 0, 0, 0);
+    } else if (tariff.id === 'night') {
+      startTime.setHours(22, 0, 0, 0);
+      if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
+      endTime = new Date(startTime);
+      endTime.setDate(endTime.getDate() + 1);
+      endTime.setHours(8, 0, 0, 0);
+    }
+    return { startTime, endTime };
+  };
+
+  const fetchAvailable = async () => {
+    setIsChecking(true);
+    try {
+      const { startTime, endTime } = getBookingTimes();
+      const availablePCs = await computersApi.getAvailable(startTime, endTime);
+      if (Array.isArray(availablePCs)) {
+        setAvailablePcIds(availablePCs.map(pc => pc.id));
+      }
+    } catch (error) {
+      console.error("Не вдалося оновити статус комп'ютерів:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailable();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tariff, hours]);
+
   const calculateTotal = () => {
     if (!selected) return 0;
     const price = Number(selected.pricePerHour) || 0;
@@ -62,34 +109,55 @@ export default function BookingMap({ onRequireAuth }) {
   };
 
   const handleBook = async () => {
-    if (!selected) return alert('Оберіть комп’ютер (Крок 3)');
-    if (!isAuthenticated) { onRequireAuth?.(); return; }
+    if (!selected) {
+      showToast('Будь ласка, оберіть комп’ютер (Крок 3)', 'error');
+      return;
+    }
+    
+    if (!isAuthenticated) { 
+      onRequireAuth?.(); 
+      return; 
+    }
+
+    const totalCost = calculateTotal();
+    
+    //ПЕРЕВІРКА БАЛАНСУ
+    if (balance < totalCost) {
+      showToast('Недостатньо коштів на балансі! Поповніть рахунок у профілі.', 'error');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      let startTime = new Date();
-      let endTime = new Date();
+      const { startTime, endTime } = getBookingTimes();
+      
+      //ПЕРЕВІРКА НАКЛАДОК ЧАСУ
+      const myBookings = await bookingsApi.getMy();
+      
+      const hasOverlap = myBookings.some(b => {
+        if (b.status !== 0) return false;
+        const bStart = new Date(b.startTime);
+        const bEnd = new Date(b.endTime);
+        return (startTime < bEnd && endTime > bStart);
+      });
 
-      if (tariff.id === 'standard') {
-        endTime.setHours(startTime.getHours() + Number(hours));
-      } else if (tariff.id === 'morning') {
-        startTime.setHours(8, 0, 0, 0);
-        if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
-        endTime = new Date(startTime);
-        endTime.setHours(14, 0, 0, 0);
-      } else if (tariff.id === 'night') {
-        startTime.setHours(22, 0, 0, 0);
-        if (startTime < new Date()) startTime.setDate(startTime.getDate() + 1);
-        endTime = new Date(startTime);
-        endTime.setDate(endTime.getDate() + 1);
-        endTime.setHours(8, 0, 0, 0);
+      if (hasOverlap) {
+        showToast('У вас вже є активне бронювання, яке збігається з цим часом!', 'error');
+        setIsSubmitting(false);
+        return; 
       }
 
+      //БРОНЮВАННЯ ТА СПИСАННЯ КОШТІВ
       await bookingsApi.create(selected.id, startTime, endTime);
-      alert('🎉 Успішно заброньовано! Деталі — у профілі.');
+      
+      updateBalance(balance - totalCost);
+      
+      showToast('Успішно заброньовано! Кошти списано з балансу.', 'success');
       setSelected(null);
+      fetchAvailable();
+
     } catch (error) {
-      alert(`Помилка: ${error.message}`);
+      showToast(error.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +184,7 @@ export default function BookingMap({ onRequireAuth }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 48, alignItems: 'start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-              {/* КРОК 1 — зона (категорія) */}
+              
               <div>
                 <div style={{ color: C.muted, marginBottom: 16, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>1. ОБЕРІТЬ ЗОНУ</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
@@ -132,7 +200,7 @@ export default function BookingMap({ onRequireAuth }) {
                       }}>
                         <div style={{ color: isSelected ? C.yellow : '#fff', fontWeight: 800, fontSize: 18, marginBottom: 12, lineHeight: 1.3 }}>
                           {m.name}<br />
-                          <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9, color: isSelected ? C.yellow : C.muted }}>{m.sub || ' '}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9, color: isSelected ? C.yellow : C.muted }}>{m.sub || ' '}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
                           {m.specs.map((spec) => (
@@ -148,7 +216,6 @@ export default function BookingMap({ onRequireAuth }) {
                 </div>
               </div>
 
-              {/* КРОК 2 — тариф і час */}
               <div>
                 <div style={{ color: C.muted, marginBottom: 16, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>2. ТАРИФ ТА ЧАС</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'rgba(24, 24, 27, 0.6)', padding: 6, borderRadius: 8, border: `1px solid ${C.border}` }}>
@@ -179,31 +246,53 @@ export default function BookingMap({ onRequireAuth }) {
                 )}
               </div>
 
-              {/* КРОК 3 — реальні компʼютери зони */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
                   <div style={{ color: C.muted, fontSize: 13, fontWeight: 700, letterSpacing: 2 }}>3. ОБЕРІТЬ КОМП’ЮТЕР</div>
                   <div style={{ display: 'flex', gap: 12, fontSize: 11, color: C.muted }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: 'rgba(24, 24, 27, 0.6)', border: `1px solid ${C.border}` }} /> Вільно</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: '#1f1f22' }} /> Ремонт</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)' }} /> Зайнято</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: '#1f1f22', border: `1px solid #27272a` }} /> Ремонт</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: C.yellow }} /> Обрано</span>
                   </div>
                 </div>
                 <div style={{ background: 'rgba(24, 24, 27, 0.6)', padding: 24, borderRadius: 8, border: `1px solid ${C.border}` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                    
                     {zoneComputers.map((pc) => {
                       const isSelected = selected?.id === pc.id;
                       const down = !pc.isWorking;
+                      const isBooked = !isChecking && !availablePcIds.includes(pc.id); 
+
+                      let btnBg = 'rgba(9, 9, 11, 0.5)';
+                      let btnBorder = `1px solid ${C.border}`;
+                      let btnColor = '#fff';
+
+                      if (down) {
+                        btnBg = '#151518';
+                        btnBorder = '1px solid #1f1f22';
+                        btnColor = '#3f3f46';
+                      } else if (isBooked) {
+                        btnBg = 'rgba(239, 68, 68, 0.05)';
+                        btnBorder = '1px solid rgba(239, 68, 68, 0.2)';
+                        btnColor = '#ef4444';
+                      } else if (isSelected) {
+                        btnBg = C.yellow;
+                        btnBorder = `1px solid ${C.yellow}`;
+                        btnColor = '#000';
+                      }
+
                       return (
-                        <button key={pc.id} disabled={down} onClick={() => setSelected(pc)} style={{
+                        <button key={pc.id} disabled={down || isBooked || isChecking} onClick={() => setSelected(pc)} style={{
                           padding: '14px 12px', borderRadius: 6, fontWeight: 700, fontSize: 14, textAlign: 'left',
-                          background: down ? '#151518' : isSelected ? C.yellow : 'rgba(9, 9, 11, 0.5)',
-                          border: `1px solid ${down ? '#1f1f22' : isSelected ? C.yellow : C.border}`,
-                          color: down ? '#3f3f46' : isSelected ? '#000' : '#fff',
-                          cursor: down ? 'not-allowed' : 'pointer', transition: 'all 0.15s'
+                          background: btnBg, border: btnBorder, color: btnColor,
+                          cursor: (down || isBooked || isChecking) ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                          opacity: (isBooked || isChecking) ? 0.6 : 1
                         }}>
                           <div style={{ fontWeight: 800 }}>{pc.name}</div>
-                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>{down ? 'на ремонті' : `${Number(pc.pricePerHour)} ₴/год`}</div>
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
+                            {down ? 'на ремонті' : isChecking ? 'перевірка...' : isBooked ? 'зайнято' : `${Number(pc.pricePerHour)} ₴/год`}
+                          </div>
                         </button>
                       );
                     })}
@@ -212,7 +301,6 @@ export default function BookingMap({ onRequireAuth }) {
               </div>
             </div>
 
-            {/* Чек */}
             <div style={{ background: 'linear-gradient(180deg, rgba(24,24,27,0.85) 0%, rgba(9,9,11,0.95) 100%)', padding: 40, borderRadius: 12, border: `1px solid ${C.yellow}`, position: 'sticky', top: 120 }}>
               <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 32, letterSpacing: 1 }}>ДЕТАЛІ БРОНЮВАННЯ</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20, color: C.muted, marginBottom: 40 }}>
@@ -244,10 +332,10 @@ export default function BookingMap({ onRequireAuth }) {
                 <span style={{ fontSize: 14, color: C.muted, fontWeight: 700, letterSpacing: 1, paddingBottom: 4 }}>ЗАГАЛОМ:</span>
                 <span style={{ fontSize: 42, fontWeight: 800, color: C.yellow, lineHeight: 1 }}>{calculateTotal()} ₴</span>
               </div>
-              <button disabled={isSubmitting} onClick={handleBook} style={{
+              <button disabled={isSubmitting || isChecking} onClick={handleBook} style={{
                 width: '100%', padding: '20px', background: C.yellow, color: '#000', border: 'none',
-                borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                letterSpacing: 2, transition: 'all 0.2s', opacity: isSubmitting ? 0.7 : 1
+                borderRadius: 8, fontSize: 18, fontWeight: 800, cursor: (isSubmitting || isChecking) ? 'not-allowed' : 'pointer',
+                letterSpacing: 2, transition: 'all 0.2s', opacity: (isSubmitting || isChecking) ? 0.7 : 1
               }}>
                 {isSubmitting ? 'ОБРОБКА...' : isAuthenticated ? 'ПІДТВЕРДИТИ' : 'УВІЙТИ Й ЗАБРОНЮВАТИ'}
               </button>
