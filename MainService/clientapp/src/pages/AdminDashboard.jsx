@@ -1,206 +1,275 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { tournamentsApi } from '../services/api'; // Підключаємо реальне API
 
-const C = { 
-  yellow: '#facc15', 
-  green: '#22c55e', 
-  red: '#ef4444', 
-  muted: '#a1a1aa', 
-  surface: '#18181b', 
-  bg: '#09090b', 
-  border: '#3f3f46' 
+const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214', surfaceLight: '#18181b' };
+
+const GAME_PRESETS = {
+  "CS 2": { bg: "/cs2.jpg", logo: "/logo-cs2.jpg" },
+  "Dota 2": { bg: "/dota2.png", logo: "/logo-dota2.png" },
+  "Valorant": { bg: "/valorant.jpg", logo: "/logo-valorant.jpg" },
+  "World of Tanks": { bg: "/wot.jpg", logo: "/logo-wot.jpg" },
+  "War Thunder": { bg: "/warthunder.jpg", logo: "/logo-wt.png" },
+  "League of Legends": { bg: "/lol.jpg", logo: "/logo-lol.png" }
 };
 
-// Початкові дані комп'ютерів
-const INITIAL_PCS = [
-  { id: 1, zone: 'STANDARD', name: 'PC-01', status: 'available' },
-  { id: 2, zone: 'STANDARD', name: 'PC-02', status: 'occupied', user: 'Alex_CS' },
-  { id: 3, zone: 'STANDARD', name: 'PC-03', status: 'available' },
-  { id: 4, zone: 'STANDARD', name: 'PC-04', status: 'maintenance' },
-  { id: 5, zone: 'PRO', name: 'PC-05', status: 'occupied', user: 'Ghost_Rider' },
-  { id: 6, zone: 'PRO', name: 'PC-06', status: 'available' },
-  { id: 7, zone: 'PRO', name: 'PC-07', status: 'occupied', user: 'S1mple_Fan' },
-  { id: 8, zone: 'VIP', name: 'VIP-01', status: 'occupied', user: 'Navi_Team' },
-  { id: 9, zone: 'VIP', name: 'VIP-02', status: 'available' },
-];
-
-// Останні бронювання
-const INITIAL_BOOKINGS = [
-  { id: 'HEX-8921', name: 'Misha D.', club: 'Тернопіль', zone: 'VIP', pc: 'VIP-01', duration: '3 год', total: 600, status: 'Confirmed' },
-  { id: 'HEX-8922', name: 'Oleg P.', club: 'Київ', zone: 'PRO', pc: 'PC-05', duration: '2 год', total: 280, status: 'Confirmed' },
-  { id: 'HEX-8923', name: 'Roma B.', club: 'Тернопіль', zone: 'STANDARD', pc: 'PC-02', duration: '5 год (Ніч)', total: 400, status: 'Pending' },
-];
-
 export default function AdminDashboard() {
-  const [pcs, setPcs] = useState(INITIAL_PCS);
-  const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
-  const [activeTab, setActiveTab] = useState('pcs'); // 'pcs' | 'bookings'
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [activeTab, setActiveTab] = useState('tournaments');
 
-  // Зміна статусу ПК по кліку
-  const togglePcStatus = (id) => {
-    setPcs(pcs.map(pc => {
-      if (pc.id === id) {
-        const nextStatus = pc.status === 'available' ? 'occupied' : pc.status === 'occupied' ? 'maintenance' : 'available';
-        return { ...pc, status: nextStatus, user: nextStatus === 'occupied' ? 'Admin_Guest' : null };
-      }
-      return pc;
-    }));
+  // Реальний стейт для турнірів
+  const [tournaments, setTournaments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Стан для модалки створення турніру
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTourney, setNewTourney] = useState({ title: '', game: 'CS 2', date: '', prize: '', format: '5X5 MIX' });
+
+  // Завантажуємо всі турніри при відкритті вкладки
+  useEffect(() => {
+    fetchTournaments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchTournaments = async () => {
+    setIsLoading(true);
+    try {
+      const data = await tournamentsApi.getAll();
+      // Сортуємо: найновіші (з найбільшим ID) будуть першими
+      setTournaments(data.sort((a, b) => b.id - a.id));
+    } catch (error) {
+      console.error(error);
+      showToast('Не вдалося завантажити список турнірів', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Підтвердження / Скасування бронювання
-  const updateBookingStatus = (id, newStatus) => {
-    setBookings(bookings.map(b => b.id === id ? { ...b, status: newStatus } : b));
+  const handleCreateTournament = async (e) => {
+    e.preventDefault();
+    if (!newTourney.title || !newTourney.date || !newTourney.prize) {
+      showToast('Заповніть всі поля!', 'error');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      // Відправляємо запит на створення турніру через реальне API
+      await tournamentsApi.create(newTourney);
+      showToast('Турнір успішно створено!', 'success');
+      
+      setIsModalOpen(false);
+      setNewTourney({ title: '', game: 'CS 2', date: '', prize: '', format: '5X5 MIX' });
+      
+      // Оновлюємо список турнірів
+      fetchTournaments();
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Розрахунок статистики
-  const totalRevenue = bookings.filter(b => b.status === 'Confirmed').reduce((acc, b) => acc + b.total, 0);
-  const occupiedCount = pcs.filter(p => p.status === 'occupied').length;
-  const loadPercentage = Math.round((occupiedCount / pcs.length) * 100);
+  const handleDeleteTournament = async (id) => {
+    if (!window.confirm("Ви впевнені, що хочете видалити цей турнір?")) return;
+
+    try {
+      // ВІДПРАВЛЯЄМО ЗАПИТ НА ВИДАЛЕННЯ
+      await tournamentsApi.delete(id);
+      
+      // Видаляємо з UI без перезавантаження
+      setTournaments(tournaments.filter(t => t.id !== id));
+      showToast('Турнір видалено', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: '#fff', padding: '120px 24px 40px', fontFamily: 'sans-serif' }}>      
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: C.bg, color: '#fff', fontFamily: "'Rajdhani', sans-serif" }}>
+      
+      {/* САЙДБАР (Бокове меню) */}
+      <aside style={{ width: '260px', background: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', paddingTop: '80px', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 10 }}>
+        <div style={{ padding: '0 24px 32px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: C.yellow, letterSpacing: '2px', textTransform: 'uppercase' }}>Панель керування</span>
+          <h2 style={{ fontSize: '24px', fontWeight: 900, marginTop: '4px', letterSpacing: '1px' }}>АДМІНІСТРАТОР</h2>
+        </div>
+
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 12px' }}>
+          {[
+            { id: 'dashboard', icon: '📊', name: 'Статистика (В розробці)' },
+            { id: 'computers', icon: '🖥', name: 'Комп\'ютери (В розробці)' },
+            { id: 'bookings', icon: '📅', name: 'Бронювання (В розробці)' },
+            { id: 'tournaments', icon: '🏆', name: 'Турніри' },
+          ].map(tab => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '8px',
+                background: activeTab === tab.id ? 'rgba(250, 204, 21, 0.1)' : 'transparent',
+                color: activeTab === tab.id ? C.yellow : C.muted,
+                border: `1px solid ${activeTab === tab.id ? 'rgba(250, 204, 21, 0.3)' : 'transparent'}`,
+                fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left'
+              }}
+              onMouseEnter={e => { if(activeTab !== tab.id) e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { if(activeTab !== tab.id) e.currentTarget.style.color = C.muted }}
+            >
+              <span style={{ fontSize: '18px' }}>{tab.icon}</span> {tab.name}
+            </button>
+          ))}
+        </nav>
+
+        <div style={{ marginTop: 'auto', padding: '24px' }}>
+          <button onClick={() => navigate('/')} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: `1px solid ${C.border}`, borderRadius: '8px', fontWeight: 800, cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.05)'}>
+            ⬅ Повернутися на сайт
+          </button>
+        </div>
+      </aside>
+
+      {/* ГОЛОВНА ЗОНА (справа) */}
+      <main style={{ marginLeft: '260px', flex: 1, padding: '100px 48px 60px' }}>
         
-        {/* Хедер Адмінки */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40, borderBottom: `1px solid ${C.border}`, paddingBottom: 20 }}>
+        {/* Вкладка: ТУРНІРИ */}
+        {activeTab === 'tournaments' && (
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: 1, margin: 0 }}>
-              HEXAGON <span style={{ color: C.yellow }}>ADMIN PANEL</span>
-            </h1>
-            <p style={{ color: C.muted, margin: '4px 0 0 0', fontSize: 14 }}>Система управління клубами та ПК у реальному часі</p>
-          </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <span style={{ padding: '8px 16px', background: 'rgba(34, 197, 94, 0.1)', border: `1px solid ${C.green}`, color: C.green, borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
-              ● SERVER ONLINE
-            </span>
-          </div>
-        </div>
-
-        {/* Метрики / Статистика */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 40 }}>
-          <div style={{ background: C.surface, padding: 24, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <div style={{ color: C.muted, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>ВИРУЧКА ЗА ДЕНЬ</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: C.yellow, marginTop: 8 }}>{totalRevenue} ₴</div>
-          </div>
-          <div style={{ background: C.surface, padding: 24, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <div style={{ color: C.muted, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>ЗАВАНТАЖЕНІСТЬ ПК</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', marginTop: 8 }}>{loadPercentage}% <span style={{ fontSize: 16, color: C.muted, fontWeight: 400 }}>({occupiedCount}/{pcs.length})</span></div>
-          </div>
-          <div style={{ background: C.surface, padding: 24, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <div style={{ color: C.muted, fontSize: 13, fontWeight: 700, letterSpacing: 1 }}>АКТИВНІ БРОНІ</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: C.green, marginTop: 8 }}>{bookings.length}</div>
-          </div>
-        </div>
-
-        {/* Перемикач вкладок */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-          <button 
-            onClick={() => setActiveTab('pcs')}
-            style={{
-              padding: '12px 24px', background: activeTab === 'pcs' ? C.yellow : C.surface, color: activeTab === 'pcs' ? '#000' : '#fff',
-              border: `1px solid ${activeTab === 'pcs' ? C.yellow : C.border}`, borderRadius: 8, fontWeight: 800, cursor: 'pointer'
-            }}
-          >
-            🖥 УПРАВЛІННЯ ПК
-          </button>
-          <button 
-            onClick={() => setActiveTab('bookings')}
-            style={{
-              padding: '12px 24px', background: activeTab === 'bookings' ? C.yellow : C.surface, color: activeTab === 'bookings' ? '#000' : '#fff',
-              border: `1px solid ${activeTab === 'bookings' ? C.yellow : C.border}`, borderRadius: 8, fontWeight: 800, cursor: 'pointer'
-            }}
-          >
-            📋 СПИСОК БРОНЮВАНЬ
-          </button>
-        </div>
-
-        {/* Моніторинг ПК */}
-        {activeTab === 'pcs' && (
-          <div style={{ background: C.surface, padding: 32, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Клікайте на ПК, щоб змінити статус:</h3>
-              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.muted }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: C.green, borderRadius: 2 }}/> Вільний</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: C.red, borderRadius: 2 }}/> Зайнятий</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, background: C.yellow, borderRadius: 2 }}/> Сервіс</span>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+              <h1 style={{ fontSize: '36px', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ width: '8px', height: '32px', background: C.yellow, borderRadius: '4px' }}></span>
+                КЕРУВАННЯ ТУРНІРАМИ
+              </h1>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                style={{ padding: '14px 28px', background: C.yellow, color: '#000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '15px', letterSpacing: '1px', cursor: 'pointer', boxShadow: '0 4px 20px rgba(250, 204, 21, 0.3)', transition: 'transform 0.2s' }}
+                onMouseEnter={e => e.target.style.transform = 'translateY(-2px)'} onMouseLeave={e => e.target.style.transform = 'translateY(0)'}
+              >
+                + ДОДАТИ ТУРНІР
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
-              {pcs.map(pc => {
-                const statusBg = pc.status === 'available' ? 'rgba(34, 197, 94, 0.1)' : pc.status === 'occupied' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(250, 204, 21, 0.1)';
-                const statusBorder = pc.status === 'available' ? C.green : pc.status === 'occupied' ? C.red : C.yellow;
-                
-                return (
-                  <div 
-                    key={pc.id} 
-                    onClick={() => togglePcStatus(pc.id)}
-                    style={{
-                      background: statusBg, border: `1px solid ${statusBorder}`, padding: 20, borderRadius: 10, cursor: 'pointer',
-                      transition: 'transform 0.15s ease', textAlign: 'center'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                  >
-                    <div style={{ fontSize: 12, color: C.muted, fontWeight: 700 }}>{pc.zone}</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, margin: '8px 0', color: '#fff' }}>{pc.name}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: statusBorder, textTransform: 'uppercase' }}>
-                      {pc.status === 'available' ? 'Вільний' : pc.status === 'occupied' ? (pc.user || 'Зайнятий') : 'Сервіс'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Таблиця Бронювань */}
-        {activeTab === 'bookings' && (
-          <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: '#121214', borderBottom: `1px solid ${C.border}`, color: C.muted }}>
-                  <th style={{ padding: 16 }}>ID</th>
-                  <th style={{ padding: 16 }}>Клієнт</th>
-                  <th style={{ padding: 16 }}>Клуб</th>
-                  <th style={{ padding: 16 }}>Зона / ПК</th>
-                  <th style={{ padding: 16 }}>Сума</th>
-                  <th style={{ padding: 16 }}>Статус</th>
-                  <th style={{ padding: 16 }}>Дії</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map(b => (
-                  <tr key={b.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: 16, fontWeight: 800, color: C.yellow }}>{b.id}</td>
-                    <td style={{ padding: 16, fontWeight: 600 }}>{b.name}</td>
-                    <td style={{ padding: 16, color: C.muted }}>{b.club}</td>
-                    <td style={{ padding: 16 }}>{b.zone} ({b.pc})</td>
-                    <td style={{ padding: 16, fontWeight: 800 }}>{b.total} ₴</td>
-                    <td style={{ padding: 16 }}>
-                      <span style={{
-                        padding: '4px 8px', borderRadius: 4, fontSize: 12, fontWeight: 800,
-                        background: b.status === 'Confirmed' ? 'rgba(34, 197, 94, 0.2)' : b.status === 'Cancelled' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(250, 204, 21, 0.2)',
-                        color: b.status === 'Confirmed' ? C.green : b.status === 'Cancelled' ? C.red : C.yellow
-                      }}>
-                        {b.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: 16 }}>
-                      {b.status === 'Pending' && (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button onClick={() => updateBookingStatus(b.id, 'Confirmed')} style={{ background: C.green, border: 'none', color: '#000', fontWeight: 800, padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>✓</button>
-                          <button onClick={() => updateBookingStatus(b.id, 'Cancelled')} style={{ background: C.red, border: 'none', color: '#fff', fontWeight: 800, padding: '6px 12px', borderRadius: 4, cursor: 'pointer' }}>✕</button>
+            {isLoading ? (
+              <p style={{ color: C.muted, fontSize: '18px' }}>Завантаження турнірів з сервера...</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+                {tournaments.length === 0 ? (
+                  <p style={{ color: C.muted }}>Турнірів ще немає. Додайте перший!</p>
+                ) : (
+                  tournaments.map(t => (
+                    <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', overflow: 'hidden', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                      
+                      {/* Картинка гри, якщо гри немає в списку, ставимо чорний фон */}
+                      <div style={{ height: '160px', backgroundColor: '#18181b', backgroundImage: GAME_PRESETS[t.game] ? `url(${GAME_PRESETS[t.game].bg})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, #121214 0%, transparent 100%)' }}></div>
+                        
+                        {GAME_PRESETS[t.game] && (
+                          <div style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(9, 9, 11, 0.8)', padding: '6px 16px 6px 6px', borderRadius: '10px', border: `1px solid ${C.border}`, backdropFilter: 'blur(4px)' }}>
+                            <img src={GAME_PRESETS[t.game].logo} alt={t.game} style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                              {t.game}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div style={{ padding: '24px' }}>
+                        <h3 style={{ margin: '0 0 20px', fontSize: '24px', fontWeight: 800 }}>{t.title}</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', color: C.muted, fontSize: '15px', marginBottom: '32px' }}>
+                          <span style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px dashed ${C.border}`, paddingBottom: '8px' }}>Дата: <strong style={{ color: '#fff' }}>{t.date}</strong></span>
+                          <span style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px dashed ${C.border}`, paddingBottom: '8px' }}>Призові: <strong style={{ color: C.yellow }}>{t.prize}</strong></span>
+                          <span style={{ display: 'flex', justifyContent: 'space-between' }}>Формат: <strong style={{ color: '#fff' }}>{t.format}</strong></span>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <button onClick={() => handleDeleteTournament(t.id)} style={{ width: '100%', padding: '12px', background: 'rgba(239, 68, 68, 0.05)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '1px' }} onMouseEnter={e => { e.target.style.background = 'rgba(239, 68, 68, 0.15)'; e.target.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.2)' }} onMouseLeave={e => { e.target.style.background = 'rgba(239, 68, 68, 0.05)'; e.target.style.boxShadow = 'none' }}>
+                          ВИДАЛИТИ ТУРНІР
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
-      </div>
+        {/* ЗАГЛУШКА ДЛЯ ІНШИХ ВКЛАДОК */}
+        {activeTab !== 'tournaments' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: C.muted, flexDirection: 'column', gap: '16px' }}>
+            <span style={{ fontSize: '48px' }}>🛠</span>
+            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Цей розділ ще в розробці</h2>
+            <p>Тут скоро з'явиться керування даними.</p>
+          </div>
+        )}
+      </main>
+
+      {/* МОДАЛКА СТВОРЕННЯ ТУРНІРУ */}
+      {isModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(9, 9, 11, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: C.surfaceLight, border: `1px solid ${C.yellow}`, borderRadius: '16px', width: '100%', maxWidth: '500px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', position: 'relative', overflow: 'hidden' }}>
+            
+            <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', color: C.muted, fontSize: '24px', cursor: 'pointer' }}>✕</button>
+            <h2 style={{ margin: '0 0 24px', fontSize: '24px', fontWeight: 900, color: '#fff' }}>ДОДАТИ ТУРНІР</h2>
+
+            <form onSubmit={handleCreateTournament} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              <div style={{ height: '140px', borderRadius: '8px', backgroundColor: '#18181b', backgroundImage: GAME_PRESETS[newTourney.game] ? `url(${GAME_PRESETS[newTourney.game].bg})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: '8px', border: `1px solid ${C.border}`, position: 'relative' }}>
+                {GAME_PRESETS[newTourney.game] && (
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(9, 9, 11, 0.8)', padding: '6px 12px 6px 6px', borderRadius: '8px', border: `1px solid ${C.border}`, backdropFilter: 'blur(4px)' }}>
+                    <img src={GAME_PRESETS[newTourney.game].logo} alt={newTourney.game} style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
+                    <span style={{ color: '#fff', fontSize: '12px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>{newTourney.game}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: C.muted, marginBottom: '8px' }}>ОБЕРІТЬ ГРУ</label>
+                <select 
+                  value={newTourney.game} 
+                  onChange={e => setNewTourney({...newTourney, game: e.target.value})}
+                  style={{ width: '100%', padding: '12px', background: C.bg, border: `1px solid ${C.border}`, color: '#fff', borderRadius: '6px', fontSize: '15px', outline: 'none' }}
+                >
+                  {Object.keys(GAME_PRESETS).map(game => (
+                    <option key={game} value={game}>{game}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: C.muted, marginBottom: '8px' }}>НАЗВА ТУРНІРУ</label>
+                <input type="text" placeholder="напр. Осінній кубок Тернополя" value={newTourney.title} onChange={e => setNewTourney({...newTourney, title: e.target.value})} style={{ width: '100%', padding: '12px', background: C.bg, border: `1px solid ${C.border}`, color: '#fff', borderRadius: '6px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: C.muted, marginBottom: '8px' }}>ДАТА ПРОВЕДЕННЯ</label>
+                  <input type="date" value={newTourney.date} onChange={e => setNewTourney({...newTourney, date: e.target.value})} style={{ width: '100%', padding: '12px', background: C.bg, border: `1px solid ${C.border}`, color: '#fff', borderRadius: '6px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: C.muted, marginBottom: '8px' }}>ФОРМАТ</label>
+                  <select value={newTourney.format} onChange={e => setNewTourney({...newTourney, format: e.target.value})} style={{ width: '100%', padding: '12px', background: C.bg, border: `1px solid ${C.border}`, color: '#fff', borderRadius: '6px', fontSize: '15px', outline: 'none' }}>
+                    <option value="5X5 MIX">5X5 MIX</option>
+                    <option value="5X5 TEAM">5X5 (Командний)</option>
+                    <option value="3X3">3X3</option>
+                    <option value="2X2">2X2 (Дуо)</option>
+                    <option value="1X1">1v1 (Соло)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: C.muted, marginBottom: '8px' }}>ПРИЗОВИЙ ФОНД</label>
+                <input type="text" placeholder="напр. 15 000 ₴ + Гаджети" value={newTourney.prize} onChange={e => setNewTourney({...newTourney, prize: e.target.value})} style={{ width: '100%', padding: '12px', background: C.bg, border: `1px solid ${C.border}`, color: '#fff', borderRadius: '6px', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <button disabled={isSubmitting} type="submit" style={{ width: '100%', padding: '16px', marginTop: '16px', background: C.yellow, color: '#000', border: 'none', borderRadius: '8px', fontWeight: 900, fontSize: '16px', letterSpacing: '1px', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, transition: 'transform 0.2s' }} onMouseEnter={e => { if(!isSubmitting) e.target.style.transform = 'translateY(-2px)'}} onMouseLeave={e => { if(!isSubmitting) e.target.style.transform = 'translateY(0)'}}>
+                {isSubmitting ? 'ОБРОБКА...' : 'СТВОРИТИ ТУРНІР'}
+              </button>
+            </form>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -80,7 +80,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Контакти */}
+          {/* Контакти (без квадратних кнопок соцмереж) */}
           <div>
             <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '24px' }}>КОНТАКТИ</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: C.muted, fontSize: '14px' }}>
@@ -108,12 +108,12 @@ export default function Footer() {
         {/* Нижня панель */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.border}`, paddingTop: '24px' }}>
           <div style={{ color: C.muted, fontSize: '12px' }}>
-            © 2026 Hexagon. Всі права захищені.
+            © {new Date().getFullYear()} Hexagon. Всі права захищені.
           </div>
           <div style={{ display: 'flex', gap: '24px', fontWeight: 800, color: '#fff', fontSize: '12px', letterSpacing: '0.5px' }}>
-            <a href="#" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>INSTAGRAM</a>
-            <a href="#" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>TELEGRAM</a>
-            <a href="#" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>TIKTOK</a>
+            <a href="https://www.instagram.com/cyberion.ua/" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>INSTAGRAM</a>
+            <a href="https://t.me/+35cwNp_lrxY2MDEy" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>TELEGRAM</a>
+            <a href="https://www.tiktok.com/@cyberion.ua" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = C.yellow} onMouseLeave={e => e.target.style.color = '#fff'}>TIKTOK</a>
           </div>
         </div>
 

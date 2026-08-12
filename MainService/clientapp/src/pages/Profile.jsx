@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Reveal from '../components/Reveal';
-import { bookingsApi } from '../services/api';
+import { bookingsApi, usersApi } from '../services/api';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214', surfaceLight: '#18181b' };
 
-// === ХУК ДЛЯ ПЛАВНОЇ АНІМАЦІЇ ЧИСЕЛ (Баланс) ===
+// Анімація для плавного збільшення числа балансу
 function useAnimatedBalance(targetValue, duration = 800) {
   const [displayValue, setDisplayValue] = useState(targetValue);
 
@@ -19,7 +19,6 @@ function useAnimatedBalance(targetValue, duration = 800) {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       
-      // Функція плавності (Ease Out Cubic)
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const currentVal = Math.floor(startValue + (targetValue - startValue) * easeOut);
       
@@ -33,14 +32,14 @@ function useAnimatedBalance(targetValue, duration = 800) {
     };
 
     window.requestAnimationFrame(step);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetValue]);
 
   return displayValue;
 }
 
 export default function Profile() {
-  // Витягуємо balance та updateBalance з контексту
-  const { isAuthenticated, userName, avatar, balance, logout, updateAvatar, updateBalance } = useContext(AuthContext);
+  const { isAuthenticated, userName, avatar, balance, logout, updateAvatar, refreshProfile } = useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
   
@@ -51,7 +50,6 @@ export default function Profile() {
   const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
 
-  // Стан для мобільної адаптивності
   const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
 
   useEffect(() => {
@@ -60,20 +58,16 @@ export default function Profile() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Підключаємо анімований баланс
   const animatedBalance = useAnimatedBalance(balance || 0);
 
-  // === ЛОГІКА СКАСУВАННЯ ТА ПОВЕРНЕННЯ КОШТІВ ===
-  const handleCancel = async (id, price) => {
+  const handleCancel = async (id) => {
     setCancellingId(id);
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
       
-      // Додаємо гроші назад на баланс
-      updateBalance((balance || 0) + price);
-      
-      showToast('Бронювання успішно скасовано! Кошти повернено на баланс.', 'success');
+      await refreshProfile(); // Сервер сам повернув гроші, просимо оновити цифру
+      showToast('Бронювання успішно скасовано! Кошти повернено.', 'success');
     } catch (e) {
       showToast(`Не вдалося скасувати: ${e.message}`, 'error');
     } finally {
@@ -86,7 +80,6 @@ export default function Profile() {
       const fetchMyBookings = async () => {
         try {
           const data = await bookingsApi.getMy();
-          // Сортуємо бронювання, щоб новіші були зверху
           setBookings(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
         } catch (error) {
           console.error("Не вдалося завантажити бронювання", error);
@@ -125,22 +118,15 @@ export default function Profile() {
   };
 
   const glassCardStyle = {
-    background: 'rgba(9, 9, 11, 0.7)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    border: `1px solid rgba(63, 63, 70, 0.5)`,
-    borderRadius: '16px',
-    padding: isMobile ? '20px' : '32px',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
-    position: 'relative',
-    overflow: 'hidden'
+    background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+    border: `1px solid rgba(63, 63, 70, 0.5)`, borderRadius: '16px', padding: isMobile ? '20px' : '32px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)', position: 'relative', overflow: 'hidden'
   };
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', paddingTop: isMobile ? '90px' : '120px', paddingBottom: '80px', color: '#fff', fontFamily: "'Rajdhani', sans-serif", overflowX: 'hidden' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '0 16px' : '0 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '32px' }}>
         
-        {/*Ліва колонка (Профіль та Баланс)*/}
         <div style={{ flex: isMobile ? '1 1 100%' : '1 1 350px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Reveal direction={isMobile ? "up" : "left"} delay={100}>
             <div style={{ ...glassCardStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -157,33 +143,15 @@ export default function Profile() {
                   marginBottom: '24px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
                   transition: 'all 0.3s ease', zIndex: 2
                 }}
-                title="Натисніть, щоб змінити аватарку"
               >
-                {avatar ? (
-                  <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <span style={{ color: C.yellow, fontWeight: 900, fontSize: '56px', textTransform: 'uppercase' }}>
-                    {userName ? userName.charAt(0) : 'G'}
-                  </span>
-                )}
-
-                <div style={{
-                  position: 'absolute', inset: 0, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(3px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s ease'
-                }}>
-                  <span style={{ color: '#fff', fontSize: '13px', fontWeight: 800, letterSpacing: '2px' }}>ЗМІНИТИ</span>
-                </div>
+                {avatar ? <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: C.yellow, fontWeight: 900, fontSize: '56px', textTransform: 'uppercase' }}>{userName ? userName.charAt(0) : 'G'}</span>}
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s ease' }}><span style={{ color: '#fff', fontSize: '13px', fontWeight: 800, letterSpacing: '2px' }}>ЗМІНИТИ</span></div>
               </div>
 
               <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} style={{ display: 'none' }} />
               
-              <h2 style={{ fontSize: isMobile ? '26px' : '32px', fontWeight: 900, margin: '0 0 4px 0', letterSpacing: '1.5px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', zIndex: 2, textAlign: 'center', wordBreak: 'break-all' }}>
-                {userName || 'ГРАВЕЦЬ'}
-              </h2>
-              <span style={{ background: 'rgba(250, 204, 21, 0.1)', color: C.yellow, fontSize: '12px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', padding: '6px 12px', borderRadius: '999px', marginBottom: '32px', border: `1px solid rgba(250, 204, 21, 0.3)`, zIndex: 2 }}>
-                Гість клубу
-              </span>
+              <h2 style={{ fontSize: isMobile ? '26px' : '32px', fontWeight: 900, margin: '0 0 4px 0', letterSpacing: '1.5px', textShadow: '0 2px 10px rgba(0,0,0,0.5)', zIndex: 2, textAlign: 'center', wordBreak: 'break-all' }}>{userName || 'ГРАВЕЦЬ'}</h2>
+              <span style={{ background: 'rgba(250, 204, 21, 0.1)', color: C.yellow, fontSize: '12px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', padding: '6px 12px', borderRadius: '999px', marginBottom: '32px', border: `1px solid rgba(250, 204, 21, 0.3)`, zIndex: 2 }}>Гість клубу</span>
 
               <button 
                 onClick={() => { logout(); showToast('Ви успішно вийшли з акаунту', 'success'); navigate('/'); }}
@@ -204,7 +172,15 @@ export default function Profile() {
                 {animatedBalance} <span style={{ fontSize: '24px', color: '#fff' }}>₴</span>
               </h3>
               <button 
-                onClick={() => { updateBalance((balance || 0) + 500); showToast('Баланс успішно поповнено на 500 ₴!', 'success'); }}
+                onClick={async () => { 
+                  try {
+                    await usersApi.topUp(500); // Поповнюємо на сервері
+                    await refreshProfile(); // Оновлюємо цифру в UI
+                    showToast('Баланс успішно поповнено на 500 ₴!', 'success');
+                  } catch (e) {
+                    showToast(e.message, 'error');
+                  }
+                }}
                 style={{ width: '100%', padding: '16px', background: C.yellow, color: '#000', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 900, cursor: 'pointer', letterSpacing: '1px', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(250, 204, 21, 0.3)', position: 'relative', zIndex: 2 }} 
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(250, 204, 21, 0.5)'; }} 
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(250, 204, 21, 0.3)'; }}
@@ -215,7 +191,6 @@ export default function Profile() {
           </Reveal>
         </div>
 
-        {/*Права колонка (Реальні бронювання)*/}
         <div style={{ flex: isMobile ? '1 1 100%' : '2 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Reveal direction={isMobile ? "up" : "right"} delay={300}>
             <div style={glassCardStyle}>
@@ -238,12 +213,8 @@ export default function Profile() {
                       <Reveal key={booking.id} direction="up" delay={isMobile ? 100 : 400 + (index * 100)}>
                         <div 
                           style={{ 
-                            display: 'flex', 
-                            flexDirection: isMobile ? 'column' : 'row', 
-                            justifyContent: 'space-between', 
-                            alignItems: isMobile ? 'flex-start' : 'center', 
-                            padding: '24px', gap: '16px',
-                            background: 'rgba(255, 255, 255, 0.02)', border: `1px solid rgba(255, 255, 255, 0.05)`, 
+                            display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', 
+                            padding: '24px', gap: '16px', background: 'rgba(255, 255, 255, 0.02)', border: `1px solid rgba(255, 255, 255, 0.05)`, 
                             borderRadius: '12px', transition: 'all 0.3s ease', cursor: 'default'
                           }} 
                           onMouseEnter={e => { if(!isMobile) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.transform = 'translateX(8px)'; e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.2)'; } }} 
@@ -268,10 +239,9 @@ export default function Profile() {
                             }}>
                               {statusInfo.text}
                             </span>
-                            {/* Передаємо ціну при скасуванні, щоб повернути її на баланс */}
                             {booking.status === 0 && (
                               <button
-                                onClick={() => handleCancel(booking.id, booking.totalPrice)}
+                                onClick={() => handleCancel(booking.id)}
                                 disabled={cancellingId === booking.id}
                                 style={{ background: 'none', border: `1px solid rgba(239,68,68,0.4)`, color: '#ef4444', fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', cursor: cancellingId === booking.id ? 'not-allowed' : 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
