@@ -17,6 +17,4 @@ public sealed class User : EntityBase, IAuditable, ISoftDeletable
     //
     public ICollection<Session> Sessions { get; set; } = new List<Session>();
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    //
-    public string? AvatarKey { get; set; }
 }
