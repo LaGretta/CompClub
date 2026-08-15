@@ -116,5 +116,18 @@ export const tournamentsApi = {
     });
     if (!res.ok) throw new Error('Не вдалося видалити турнір');
     return true; 
+  },
+  // === РЕЄСТРАЦІЯ НА ТУРНІР ===
+  register: async (tournamentId, registrationData) => {
+    const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/register`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: JSON.stringify(registrationData)
+    });
+    if (!res.ok) {
+      let errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || 'Помилка реєстрації. Можливо, ви вже берете участь у цьому турнірі!');
+    }
+    return res.json();
   }
 };
