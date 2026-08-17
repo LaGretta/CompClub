@@ -4,7 +4,6 @@ using AuthService.Api.Requests;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Application.Tools;
 using AuthService.Domain.Requests.Auth;
-using DefaultNamespace;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
