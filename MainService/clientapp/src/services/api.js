@@ -77,7 +77,14 @@ export const usersApi = {
   getMe: async () => {
     const res = await fetch(`${API_BASE_URL}/users/me`, { headers: getHeaders(true) });
     if (!res.ok) throw new Error('Не вдалося завантажити профіль');
-    return res.json();
+    
+    // ДОДАНО ЗАХИСТ: Перевіряємо, чи сервер повернув JSON
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return res.json();
+    } else {
+      throw new Error("Ендпоінт /api/users/me ще не готовий на бекенді (повертає HTML замість JSON).");
+    }
   },
   topUp: async (amount) => {
     const res = await fetch(`${API_BASE_URL}/users/topup`, {

@@ -8,11 +8,29 @@ export const AuthProvider = ({ children }) => {
   const [userName, setUserName] = useState(localStorage.getItem('userName') || null);
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
   
+  // Стан для ролі Адміна
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   // Стан для збереження аватарки
   const [avatar, setAvatar] = useState(null);
   
-  // Стан для реального балансу з сервера
+  // Стан для балансу з сервера
   const [balance, setBalance] = useState(0);
+
+  // Перевіряє ТІЛЬКИ чи є ти Адміном
+  const checkAdminRole = (jwtToken) => {
+    if (!jwtToken) { 
+      setIsAdmin(false); 
+      return; 
+    }
+    try {
+      const payload = JSON.parse(decodeURIComponent(window.atob(jwtToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+      const roleClaim = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || payload.role;
+      setIsAdmin(Array.isArray(roleClaim) ? roleClaim.includes("Admin") : roleClaim === "Admin");
+    } catch (e) { 
+      setIsAdmin(false); 
+    }
+  };
 
   // Оновлює баланс напряму з сервера
   const refreshProfile = async () => {
@@ -36,19 +54,23 @@ export const AuthProvider = ({ children }) => {
     }
     
     if (token) {
+      checkAdminRole(token);
       refreshProfile();
     } else {
       setBalance(0);
+      setIsAdmin(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName, token]);
   
   const login = (newToken, name = "Гравець") => {
     localStorage.setItem('token', newToken);
-    localStorage.setItem('userName', name);
+    localStorage.setItem('userName', name); // Зберігаємо точний нікнейм з форми!
+    
     setToken(newToken);
     setUserName(name);
     setIsAuthenticated(true);
+    checkAdminRole(newToken); // Перевіряємо, чи цей юзер не адмін часом
   };
 
   const updateAvatar = (newAvatarUrl) => {
@@ -65,12 +87,12 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUserName(null);
     setBalance(0);
+    setIsAdmin(false);
     setIsAuthenticated(false);
   };
 
   return (
-    // Передаємо refreshProfile, щоб інші компоненти могли попросити оновити баланс
-    <AuthContext.Provider value={{ token, isAuthenticated, userName, avatar, balance, login, logout, updateAvatar, refreshProfile }}>
+    <AuthContext.Provider value={{ token, isAuthenticated, isAdmin, userName, avatar, balance, login, logout, updateAvatar, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

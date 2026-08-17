@@ -8,7 +8,7 @@ const ZONES_INFO = [
     id: 'standard',
     name: 'СТАНДАРТ',
     desc: 'Ідеальний баланс для комфортної гри з друзями на високих налаштуваннях.',
-    price: 'від 100 ₴ / год',
+    price: 'від 55 ₴ / год',
     isPopular: false,
     pc: [
       { label: 'GPU', val: 'GeForce RTX 5060 TI' },
@@ -26,7 +26,7 @@ const ZONES_INFO = [
     id: 'vip',
     name: 'VIP BOOTCAMP',
     desc: 'Ультимативний геймінг. Закрита кімната для команди з найкращим залізом на ринку.',
-    price: 'від 200 ₴ / год',
+    price: 'від 120 ₴ / год',
     isPopular: true,
     pc: [
       { label: 'GPU', val: 'GeForce RTX 5080 TI SUPER' },
@@ -44,7 +44,7 @@ const ZONES_INFO = [
     id: 'ps5',
     name: 'PS5 CONSOLE',
     desc: 'Максимальний релакс. Зручні дивани, великий екран та ексклюзиви PlayStation.',
-    price: 'від 150 ₴ / год',
+    price: 'від 90 ₴ / год',
     isPopular: false,
     pc: [
       { label: 'Консоль', val: 'Sony PlayStation 5' },
