@@ -16,6 +16,10 @@ public class UserConfiguration:IEntityTypeConfiguration<User>
         //
         builder.HasIndex(u => u.Email)
             .IsUnique();
+        //
+        builder.Property(u => u.Balance)
+            .HasPrecision(18, 2)
+            .HasDefaultValue(0m);
         //ISoftDeletable
         builder.HasQueryFilter(u => !u.DeletedAt.HasValue);
     }

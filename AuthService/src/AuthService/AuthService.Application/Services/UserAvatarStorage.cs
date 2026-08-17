@@ -49,7 +49,6 @@ public class UserAvatarStorage : IUserAvatarStorage
 
         await _s3.PutObjectAsync(request);
     }
-
     public async Task DeleteAsync(Guid userId)
     {
         var key = CreateKey(userId);
@@ -62,7 +61,6 @@ public class UserAvatarStorage : IUserAvatarStorage
 
         await _s3.DeleteObjectAsync(request);
     }
-
     public string GetPresignedUrl(Guid userId)
     {
         var key = CreateKey(userId);
@@ -77,4 +75,5 @@ public class UserAvatarStorage : IUserAvatarStorage
 
         return _s3.GetPreSignedURL(request);
     }
+    
 }

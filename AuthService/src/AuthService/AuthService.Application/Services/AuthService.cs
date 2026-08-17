@@ -347,5 +347,40 @@ public class AuthService : IAuthService
         //
         await _userAvatarStorage.DeleteAsync(userId);
     }
-    
+    //
+    public async Task TransactionExecute(TransactionExecuteCommand request, CancellationToken cancellationToken)
+    {
+        //cookies data check
+        if (request.HttpCookies.RefreshToken == null)
+            throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
+        //Session finding and checking(EnsureAvailable)
+        var hashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var currentSession = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == hashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable();
+        //User
+        var user = await _authRepository.Users.FirstOrDefaultAsync(new ()
+        {
+            Predicate = u=> u.Id == currentSession.UserId,
+        }, new() { Tracking = QueryTracking.Track }, cancellationToken) ??
+        throw new UserSoftDeletedException(currentSession.UserId, currentSession.Id);
+        //
+        if (request.Value >= 0)
+        {
+            user.Balance += request.Value;
+        }
+        else
+        {
+            var amountToWithdraw = -request.Value;
+
+            if (user.Balance < amountToWithdraw)
+                throw new TransactionExecuteException(user.Balance, request.Value);
+
+            user.Balance -= amountToWithdraw;
+        }
+        //
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+    }
 }

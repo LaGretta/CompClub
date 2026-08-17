@@ -16,6 +16,7 @@ public interface IAuthService
     Task UploadAvatar(UploadAvatarCommand request, CancellationToken cancellationToken);
     Task<GetAvatarPresignedUrlResponse> GetAvatarPresignedUrl(GetAvatarPresignedUrlCommand request,
         CancellationToken cancellationToken);
-
     Task DeleteAvatar(DeleteAvatarCommand request, CancellationToken cancellationToken);
+    //
+    Task TransactionExecute(TransactionExecuteCommand request, CancellationToken cancellationToken);
 }
