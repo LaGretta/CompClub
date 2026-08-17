@@ -10,7 +10,7 @@ namespace AuthService.Storage.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<decimal>(
+            migrationBuilder.AddColumn<decimal>(
                 name: "Balance",
                 schema: "auth",
                 table: "Users",
@@ -18,25 +18,16 @@ namespace AuthService.Storage.Migrations
                 precision: 18,
                 scale: 2,
                 nullable: false,
-                defaultValue: 0m,
-                oldClrType: typeof(decimal),
-                oldType: "numeric");
+                defaultValue: 0m);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<decimal>(
+            migrationBuilder.DropColumn(
                 name: "Balance",
                 schema: "auth",
-                table: "Users",
-                type: "numeric",
-                nullable: false,
-                oldClrType: typeof(decimal),
-                oldType: "numeric(18,2)",
-                oldPrecision: 18,
-                oldScale: 2,
-                oldDefaultValue: 0m);
+                table: "Users");
         }
     }
 }

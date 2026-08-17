@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AuthService.Storage.Migrations
 {
     [DbContext(typeof(AuthServiceContext))]
-    [Migration("20260817183406_AddUserBalance")]
+    [Migration("20260817190700_AddUserBalance")]
     partial class AddUserBalance
     {
         /// <inheritdoc />
