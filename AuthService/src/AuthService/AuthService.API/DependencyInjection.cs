@@ -1,5 +1,7 @@
 ﻿using System.Text;
+using Amazon.S3;
 using AuthService.Api.Validators;
+using AuthService.Application.Services;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Domain.DTOs.Options;
 using AuthService.Domain.DTOs.Options.Cache;
@@ -21,45 +23,22 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAuthService(this IServiceCollection services, IConfiguration configuration)
     {
-        //options(appsettings.json->Dto->services)
-        services.Configure<JwtOptions>(configuration.GetSection("Jwt")); //Jwt
-        services.Configure<SessionOptions>(configuration.GetSection("Session"));//Session
-        // Доменні SessionOptions (Lifetime/IdleTimeout) — саме їх читає AuthService.
-        services.Configure<AuthService.Domain.DTOs.Options.SessionOptions>(configuration.GetSection("Session"));
-        services.Configure<CacheOptions>(configuration.GetSection("Cache"));//Cache
-        //Manually services registration (Scrutor-скан вимкнено — реєструємо явно)
+        //Manually services registration
         services.AddScoped<IUnitOfWork>(s => s.GetRequiredService<AuthServiceContext>());
         services.AddScoped<IAuthService, Application.Services.AuthService>();
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
-        services.AddScoped<IMemoryCacheService, Application.Services.MemoryCacheService>();
-        services.AddScoped<IJwtService, Application.Services.JwtService>();
-        services.AddScoped<IRefreshTokenService, Application.Services.RefreshTokenService>();
-        services.AddScoped<IHttpCookieService, Application.Services.HttpCookieService>();
-        //
-        
+        services.AddScoped<IMemoryCacheService, MemoryCacheService>();
+        services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IHttpCookieService, HttpCookieService>();
+        services.AddScoped<IUserAvatarStorage, UserAvatarStorage>();
+        //Avatar management
+        services.AddScoped<IUserAvatarStorage, UserAvatarStorage>();
+        services.AddScoped<IFileTypeDetector, FileTypeDetector>();
         //packages
-        services.AddMemoryCache();//Cache
-        //other
-        services.AddSingleton<AuditInterceptor>();//AuditInterceptor(Ef core)
-        //Ef core
-        services.AddDbContext<AuthServiceContext>((provider, options) =>
-            {
-                //DB (PostgreSQL — Railway)
-                 options.UseNpgsql(
-        configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions =>
-        {
-            npgsqlOptions.MigrationsHistoryTable(
-                "__EFMigrationsHistory",
-                "auth");
-        });
-                //AuditInterceptor
-                options.AddInterceptors(
-                    provider.GetRequiredService<AuditInterceptor>());
-            }
-        );
-        //Auto services registration(in progress)
+        services.AddMemoryCache(); //Cache
+        //Auto services registration
         // services.Scan(scan => scan
         //     .FromAssembliesOf(
         //         typeof(RecruitmentVacanciesContext),
@@ -76,10 +55,46 @@ public static class DependencyInjection
         //     .WithScopedLifetime());
         // //
         // services.AddTransient<IJwtService, JwtService>();
+
+        return services;
+    }
+    public static IServiceCollection AddDbContext(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<AuditInterceptor>(); //AuditInterceptor(Ef core)
+        //Ef core
+        services.AddDbContext<AuthServiceContext>((provider, options) =>
+            {
+                //DB (PostgresSQL — Railway)
+                options.UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.MigrationsHistoryTable(
+                            "__EFMigrationsHistory",
+                            "auth");
+                    });
+                //AuditInterceptor
+                options.AddInterceptors(
+                    provider.GetRequiredService<AuditInterceptor>());
+            }
+        );
+
+        return services;
+    }
+    public static IServiceCollection AddOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        //options(appsettings.json->Dto->services)
+        services.Configure<JwtOptions>(configuration.GetSection("Jwt")); //Jwt
+        services.Configure<SessionOptions>(configuration.GetSection("Session")); //Session
+        services.Configure<AvatarOptions>(configuration.GetSection("AvatarOptions"));//Avatar
+        services.Configure<S3Options>(options =>
+        {
+            options.BucketName = configuration["AWS_BUCKET_NAME"] ?? throw new InvalidOperationException("AWS_BUCKET_NAME is not configured.");
+        });//AWS-> S3 -> Bucket name
+        services.Configure<CacheOptions>(configuration.GetSection("Cache")); //Cache
         
         return services;
     }
-
     public static IServiceCollection AddMemoryCache(this IServiceCollection services)
     {
         services.AddMemoryCache(options =>
@@ -91,7 +106,6 @@ public static class DependencyInjection
         
         return services;
     }
-
     public static IServiceCollection AddAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? throw new InvalidOperationException("Jwt configuration is missing.");
@@ -119,10 +133,10 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssemblyContaining<LoginUserRequestValidator>();
         services.AddValidatorsFromAssemblyContaining<RegisterUserRequestValidator>();
+        services.AddValidatorsFromAssemblyContaining<AvatarUploadValidator>();
 
         return services;
     }
-
     public static IServiceCollection AddForwardedHeadersMiddleware(this IServiceCollection services)
     {
         services.Configure<ForwardedHeadersOptions>(options =>
@@ -132,6 +146,27 @@ public static class DependencyInjection
             // Для production краще вказати KnownNetworks/KnownProxies.
             options.KnownNetworks.Clear();
             options.KnownProxies.Clear();
+        });
+        return services;
+    }
+    public static IServiceCollection AddAws(this IServiceCollection services, IConfiguration configuration )
+    {
+        services.AddDefaultAWSOptions(configuration.GetAWSOptions());
+        services.AddAWSService<IAmazonS3>();
+
+        return services;
+    }
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration, string frontendCors)
+    {
+        services.AddCors(options =>
+        {
+            var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                          ?? new[] { "http://localhost:5173", "https://compclub-production.up.railway.app" };
+            options.AddPolicy(frontendCors, policy => policy
+                .WithOrigins(origins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials());
         });
         return services;
     }

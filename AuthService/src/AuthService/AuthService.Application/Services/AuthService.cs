@@ -1,4 +1,6 @@
 ﻿using AuthService.Application.Commands.User;
+using AuthService.Application.Commands.User.Avatar;
+using AuthService.Application.Responses.Avatar;
 using AuthService.Application.Results.Auth;
 using AuthService.Application.Results.Auth.Base;
 using AuthService.Application.Services.Abstractions;
@@ -10,6 +12,7 @@ using AuthService.Domain.Exceptions.Auth;
 using AuthService.Domain.Exceptions.DataBase;
 using AuthService.Domain.Exceptions.Services;
 using AuthService.Domain.Models;
+using AuthService.Domain.Models.Extensions;
 using AuthService.Shared.Hash;
 using AuthService.Storage;
 using AuthService.Storage.Repositories.Abstractions;
@@ -22,6 +25,7 @@ public class AuthService : IAuthService
 {
     private readonly IAuthRepository _authRepository;
     private readonly IJwtService _jwtService;
+    private readonly IUserAvatarStorage _userAvatarStorage;
 
     private readonly IRefreshTokenService _refreshTokenService;
 
@@ -32,12 +36,13 @@ public class AuthService : IAuthService
     private readonly SessionOptions _options;
 
     //constructor
-    public AuthService(IAuthRepository authRepository, IJwtService jwtService, IRefreshTokenService refreshTokenService,
+    public AuthService(IAuthRepository authRepository, IJwtService jwtService, IRefreshTokenService refreshTokenService, IUserAvatarStorage userAvatarStorage,
         IUnitOfWork unitOfWork, IOptions<SessionOptions> options)
     {
         _authRepository = authRepository;
         _jwtService = jwtService;
         _refreshTokenService = refreshTokenService;
+        _userAvatarStorage = userAvatarStorage;
         _unitOfWork = unitOfWork;
         //
         _options = options.Value;
@@ -90,7 +95,7 @@ public class AuthService : IAuthService
         newSession.User = newUser;
         newUser.Sessions.Add(newSession);
         await _authRepository.Users.AddAsync(newUser, cancellationToken);
-        // Призначаємо роль Client — щоб роль реально зберігалась (login читає її з UserRoles).
+        //
         await _authRepository.UserRoles.AddAsync(
             new UserRole { UserId = userId, RoleId = clientRole.Id }, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -186,24 +191,15 @@ public class AuthService : IAuthService
         //cookies data check
         if (request.HttpCookies.RefreshToken == null)
             throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
-        //session finding
-        var oldHashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
-        var session = await _authRepository.Sessions.FirstOrDefaultAsync(new()
-        {
-            Predicate = s => s.TokenHash == oldHashedRefreshToken,
-        }, new() { Tracking = QueryTracking.NoTracking }, cancellationToken);
         //time recording
         var dateNow = DateTime.UtcNow;
         var expiresAt = dateNow + _options.Lifetime;
-        //session checking
-        if (session == null)
-            throw new SessionValidationException(null, SessionUnavailableReason.NotFound);
-        if (session.TokenHash != oldHashedRefreshToken)
-            throw new SessionValidationException(session.Id, SessionUnavailableReason.TokenMismatch);
-        if (session.RevokedAt != null)
-            throw new SessionValidationException(session.Id, SessionUnavailableReason.Revoked);
-        if (session.ExpiresAt <= dateNow)
-            throw new SessionValidationException(session.Id, SessionUnavailableReason.Expired);
+        //session finding and checking(EnsureAvailable)
+        var oldHashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var session = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == oldHashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking }, cancellationToken)).EnsureAvailable(dateNow);
         //user checking
         var user = await _authRepository.Users.FirstOrDefaultAsync(new()
                    {
@@ -260,45 +256,31 @@ public class AuthService : IAuthService
         //cookies data check
         if (request.HttpCookies.RefreshToken == null)
             throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
-        //session finding
-        var oldHashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
-        var currentSession = await _authRepository.Sessions.FirstOrDefaultAsync(new()
-            {
-                Predicate = s => s.TokenHash == oldHashedRefreshToken,
-            }, new() { Tracking = QueryTracking.NoTracking },cancellationToken);
         //time recording
         var dateNow = DateTime.UtcNow;
-        //session checking
-        if (currentSession == null)
-            throw new SessionValidationException(null, SessionUnavailableReason.NotFound);
-        if (currentSession.RevokedAt != null)
-            throw new SessionValidationException(currentSession.Id, SessionUnavailableReason.Revoked);
-        if (currentSession.ExpiresAt <= dateNow)
-            throw new SessionValidationException(currentSession.Id, SessionUnavailableReason.Expired);
+        //session finding and checking(EnsureAvailable)
+        var oldHashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var currentSession = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == oldHashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable(dateNow);
         //user checking
         if (!await _authRepository.Users.AnyAsync(new()
             {
                 Predicate = u => u.Sessions.Any(s => s.Id == currentSession.Id && s.UserId == u.Id),
-            }, true, cancellationToken))
+            }, false, cancellationToken))
             throw new UserSoftDeletedException(currentSession.UserId, currentSession.Id);
         //branching: delete this or the specified session
         Session? sessionForDelete;
         if (request.SessionIdToDelete != null && request.SessionIdToDelete != currentSession.Id)
         {
-            sessionForDelete = await _authRepository.Sessions.FirstOrDefaultAsync(new()
+            //session for deleting checking(EnsureAvailable)
+            sessionForDelete = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
             {
                 Predicate = s=> s.UserId == currentSession.UserId,
-            }, new() { Tracking = QueryTracking.NoTracking },cancellationToken);
-            //session for deleting checking
-            if (sessionForDelete == null)
-                throw new SessionValidationException(null, SessionUnavailableReason.NotFound);
-            if (sessionForDelete.RevokedAt != null)
-                throw new SessionValidationException(sessionForDelete.Id, SessionUnavailableReason.Revoked);
-            if (sessionForDelete.ExpiresAt <= dateNow)
-                throw new SessionValidationException(sessionForDelete.Id, SessionUnavailableReason.Expired);
+            }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable(dateNow);
         }
         else sessionForDelete = currentSession;
-
         //session changing and revoking
         sessionForDelete.LastUsedAt = dateNow;
         sessionForDelete.RevokedAt = dateNow;
@@ -313,4 +295,57 @@ public class AuthService : IAuthService
             Cookies = [new DeleteCookieCommand() { Name = "refreshToken" }]
         };
     }
+    //Avatars management
+    public async Task UploadAvatar(UploadAvatarCommand request, CancellationToken cancellationToken)
+    {
+        //cookies data check
+        if (request.HttpCookies.RefreshToken == null)
+            throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
+        //Session finding and checking(EnsureAvailable)
+        var hashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var currentSession = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == hashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable();
+        //UserId 
+        var userId =  currentSession.UserId;
+        //
+        await _userAvatarStorage.UploadAsync(userId, request.File);
+    }
+    public async Task<GetAvatarPresignedUrlResponse> GetAvatarPresignedUrl(GetAvatarPresignedUrlCommand request, CancellationToken cancellationToken)
+    {
+        //cookies data check
+        if (request.HttpCookies.RefreshToken == null)
+            throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
+        //Session finding and checking(EnsureAvailable)
+        var hashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var currentSession = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == hashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable();
+        //UserId 
+        var userId =  currentSession.UserId;
+        //
+        return new GetAvatarPresignedUrlResponse()
+        {
+            PresignedUrl = _userAvatarStorage.GetPresignedUrl(userId)
+        };
+    }
+    public async Task DeleteAvatar(DeleteAvatarCommand request, CancellationToken cancellationToken)
+    {
+        //cookies data check
+        if (request.HttpCookies.RefreshToken == null)
+            throw new IncompleteHttpCookieDatasetException(["refreshToken"]);
+        //Session finding and checking(EnsureAvailable)
+        var hashedRefreshToken = HasherUtil.Hash(request.HttpCookies.RefreshToken);
+        var currentSession = (await _authRepository.Sessions.FirstOrDefaultAsync(new()
+        {
+            Predicate = s => s.TokenHash == hashedRefreshToken,
+        }, new() { Tracking = QueryTracking.NoTracking },cancellationToken)).EnsureAvailable();
+        //UserId 
+        var userId =  currentSession.UserId;
+        //
+        await _userAvatarStorage.DeleteAsync(userId);
+    }
+    
 }

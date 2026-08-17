@@ -5,30 +5,23 @@ using AuthService.Storage;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+//CORS property
+const string frontendCors = "frontend";
 
 builder.Services.AddControllers();
-
-builder.Services.AddAuthService(builder.Configuration);//DI
+//DI
+builder.Services.AddAuthService(builder.Configuration);//Main
 builder.Services.AddAuthentication(builder.Configuration);//Jwt
 builder.Services.AddRequestValidators();//Request`s validators
 builder.Services.AddForwardedHeadersMiddleware();//Forwarded Headers Middleware
+builder.Services.AddOptions(builder.Configuration);
+builder.Services.AddAws(builder.Configuration);
+builder.Services.AddDbContext(builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CORS для фронта (браузер шле логін/реєстрацію крос-доменно з credentials).
-// Origins задаються в конфізі Cors:AllowedOrigins; є дефолти для локалки + Railway-фронта.
-const string FrontendCors = "frontend";
-builder.Services.AddCors(options =>
-{
-    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-        ?? new[] { "http://localhost:5173", "https://compclub-production.up.railway.app" };
-    options.AddPolicy(FrontendCors, policy => policy
-        .WithOrigins(origins)
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials());
-});
+builder.Services.AddCorsPolicy(builder.Configuration, frontendCors);
 
 var app = builder.Build();
 
@@ -63,14 +56,13 @@ if (app.Environment.IsDevelopment())
 app.UseForwardedHeaders();//Forwarded Headers Middleware
 
 app.UseTestEndpoints();
-
 app.UseHttpsRedirection();
 
-app.UseCors(FrontendCors);
+app.UseCors(frontendCors);
 
-// Після UseCors — щоб на error-відповідях лишались CORS-заголовки.
 app.UseMiddleware<AuthService.API.Middleware.ExceptionHandlingMiddleware>();
 
+//app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

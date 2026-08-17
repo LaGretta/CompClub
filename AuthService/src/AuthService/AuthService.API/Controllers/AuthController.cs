@@ -102,4 +102,39 @@ public class AuthController: ControllerBase
         //
         return Ok(result.Data);
     }
+    //Avatar management
+    [HttpPost("Avatar")]
+    public async Task<IActionResult> SetAvatar([FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        var stream = file.OpenReadStream();
+        //
+        await _authService.UploadAvatar(new()
+        {
+            HttpCookies = HttpContext.Request.GetCookies(),
+            //
+            File = stream
+            
+        }, cancellationToken);
+        return Ok();
+    }
+    [HttpGet("Avatar")]
+    public async Task<IActionResult> GetAvatarPresignedUrl(CancellationToken cancellationToken)
+    {
+        var result = await _authService.GetAvatarPresignedUrl(new()
+        {
+            HttpCookies = HttpContext.Request.GetCookies(),
+            
+        }, cancellationToken);
+        return Ok(result.PresignedUrl);
+    }
+    [HttpDelete("Avatar")]
+    public async Task<IActionResult> DeleteAvatar(CancellationToken cancellationToken)
+    {
+        await _authService.DeleteAvatar(new()
+        {
+            HttpCookies = HttpContext.Request.GetCookies(),
+            
+        }, cancellationToken);
+        return Ok();
+    }
 }
