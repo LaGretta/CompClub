@@ -53,21 +53,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
         if (response.ok) {
           const data = await response.json();
-          let realName = loginInput;
-          try {
-            const base64Url = data.accessToken.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const payload = JSON.parse(jsonPayload);
-            realName = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || payload.name || payload.unique_name || loginInput;
-          } catch (e) {
-            console.error("Не вдалося розпарсити токен");
-          }
-          if (realName.includes('@')) {
-             realName = realName.split('@')[0];
-          }
+          const realName = data.userName || data.username || loginInput;
 
           login(data.accessToken, realName);
           onLoginSuccess?.({ name: realName, token: data.accessToken });
@@ -91,7 +77,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         });
 
         if (response.ok) {
-          showToast('Реєстрація успішна! Тепер увійдіть під своїми даними.', 'success'); // <-- Успішна реєстрація
+          showToast('Реєстрація успішна! Тепер увійдіть під своїми даними.', 'success'); 
           setIsLoginTab(true);
           setPassword('');
           setConfirmPassword('');
@@ -134,12 +120,23 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {!isLoginTab && (
             <>
-              <div><label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>НІКНЕЙМ (USERNAME)</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Введіть ваш нікнейм" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} /></div>
-              <div><label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>EMAIL</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="example@club.com" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} /></div>
+              <div>
+                <label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>НІКНЕЙМ (USERNAME)</label>
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Введіть ваш нікнейм" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
+              <div>
+                <label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>EMAIL</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="example@club.com" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} />
+              </div>
             </>
           )}
 
-          {isLoginTab && <div><label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>ЛОГІН АБО EMAIL</label><input type="text" value={loginInput} onChange={e => setLoginInput(e.target.value)} placeholder="Ваш логін" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} /></div>}
+          {isLoginTab && (
+            <div>
+              <label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>ЛОГІН АБО EMAIL</label>
+              <input type="text" value={loginInput} onChange={e => setLoginInput(e.target.value)} placeholder="Ваш логін" style={inputStyle} onFocus={e => e.target.style.borderColor = C.yellow} onBlur={e => e.target.style.borderColor = C.border} />
+            </div>
+          )}
 
           <div style={{ position: 'relative' }}>
             <label style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>ПАРОЛЬ</label>
@@ -154,7 +151,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', background: C.yellow, color: '#000', border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: 2, marginTop: 12, transition: 'all 0.2s', opacity: loading ? 0.7 : 1 }} onMouseEnter={e => !loading && (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={e => !loading && (e.currentTarget.style.transform = 'translateY(0)')}>{loading ? 'ЗАВАНТАЖЕННЯ...' : (isLoginTab ? 'УВІЙТИ В АКАУНТ' : 'СТВОРИТИ ПРОФІЛЬ')}</button>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', background: C.yellow, color: '#000', border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: 2, marginTop: 12, transition: 'all 0.2s', opacity: loading ? 0.7 : 1 }} onMouseEnter={e => !loading && (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={e => !loading && (e.currentTarget.style.transform = 'translateY(0)')}>
+            {loading ? 'ЗАВАНТАЖЕННЯ...' : (isLoginTab ? 'УВІЙТИ В АКАУНТ' : 'СТВОРИТИ ПРОФІЛЬ')}
+          </button>
         </form>
       </div>
     </div>

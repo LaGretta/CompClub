@@ -66,7 +66,7 @@ export default function Profile() {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
       
-      await refreshProfile(); // Сервер сам повернув гроші, просимо оновити цифру
+      await refreshProfile();
       showToast('Бронювання успішно скасовано! Кошти повернено.', 'success');
     } catch (e) {
       showToast(`Не вдалося скасувати: ${e.message}`, 'error');

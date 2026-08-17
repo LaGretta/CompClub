@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
-import { tournamentsApi } from '../services/api'; // Підключаємо реальне API
+import { tournamentsApi } from '../services/api'; 
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214', surfaceLight: '#18181b' };
 
@@ -19,16 +19,13 @@ export default function AdminDashboard() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('tournaments');
 
-  // Реальний стейт для турнірів
   const [tournaments, setTournaments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Стан для модалки створення турніру
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTourney, setNewTourney] = useState({ title: '', game: 'CS 2', date: '', prize: '', format: '5X5 MIX' });
 
-  // Завантажуємо всі турніри при відкритті вкладки
   useEffect(() => {
     fetchTournaments();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,7 +35,6 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       const data = await tournamentsApi.getAll();
-      // Сортуємо: найновіші (з найбільшим ID) будуть першими
       setTournaments(data.sort((a, b) => b.id - a.id));
     } catch (error) {
       console.error(error);
@@ -57,14 +53,12 @@ export default function AdminDashboard() {
     
     setIsSubmitting(true);
     try {
-      // Відправляємо запит на створення турніру через реальне API
       await tournamentsApi.create(newTourney);
       showToast('Турнір успішно створено!', 'success');
       
       setIsModalOpen(false);
       setNewTourney({ title: '', game: 'CS 2', date: '', prize: '', format: '5X5 MIX' });
       
-      // Оновлюємо список турнірів
       fetchTournaments();
     } catch (error) {
       showToast(error.message, 'error');
@@ -75,12 +69,8 @@ export default function AdminDashboard() {
 
   const handleDeleteTournament = async (id) => {
     if (!window.confirm("Ви впевнені, що хочете видалити цей турнір?")) return;
-
     try {
-      // ВІДПРАВЛЯЄМО ЗАПИТ НА ВИДАЛЕННЯ
       await tournamentsApi.delete(id);
-      
-      // Видаляємо з UI без перезавантаження
       setTournaments(tournaments.filter(t => t.id !== id));
       showToast('Турнір видалено', 'success');
     } catch (error) {
@@ -91,8 +81,8 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: C.bg, color: '#fff', fontFamily: "'Rajdhani', sans-serif" }}>
       
-      {/* САЙДБАР (Бокове меню) */}
-      <aside style={{ width: '260px', background: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', paddingTop: '80px', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 10 }}>
+      {/*Бокове меню*/}
+      <aside style={{ width: '280px', background: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', paddingTop: '40px', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 10 }}>
         <div style={{ padding: '0 24px 32px' }}>
           <span style={{ fontSize: '12px', fontWeight: 800, color: C.yellow, letterSpacing: '2px', textTransform: 'uppercase' }}>Панель керування</span>
           <h2 style={{ fontSize: '24px', fontWeight: 900, marginTop: '4px', letterSpacing: '1px' }}>АДМІНІСТРАТОР</h2>
@@ -130,14 +120,13 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ГОЛОВНА ЗОНА (справа) */}
-      <main style={{ marginLeft: '260px', flex: 1, padding: '100px 48px 60px' }}>
+      {/*Головна зона*/}
+      <main style={{ marginLeft: '260px', flex: 1, padding: '40px 48px 60px' }}>
         
-        {/* Вкладка: ТУРНІРИ */}
         {activeTab === 'tournaments' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-              <h1 style={{ fontSize: '36px', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <h1 style={{ fontSize: '36px', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '16px', margin: 0 }}>
                 <span style={{ width: '8px', height: '32px', background: C.yellow, borderRadius: '4px' }}></span>
                 КЕРУВАННЯ ТУРНІРАМИ
               </h1>
@@ -159,8 +148,6 @@ export default function AdminDashboard() {
                 ) : (
                   tournaments.map(t => (
                     <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', overflow: 'hidden', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                      
-                      {/* Картинка гри, якщо гри немає в списку, ставимо чорний фон */}
                       <div style={{ height: '160px', backgroundColor: '#18181b', backgroundImage: GAME_PRESETS[t.game] ? `url(${GAME_PRESETS[t.game].bg})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, #121214 0%, transparent 100%)' }}></div>
                         
@@ -193,12 +180,11 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ЗАГЛУШКА ДЛЯ ІНШИХ ВКЛАДОК */}
         {activeTab !== 'tournaments' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: C.muted, flexDirection: 'column', gap: '16px' }}>
             <span style={{ fontSize: '48px' }}>🛠</span>
-            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Цей розділ ще в розробці</h2>
-            <p>Тут скоро з'явиться керування даними.</p>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Цей розділ ще в розробці</h2>
+            <p style={{ margin: 0 }}>Тут скоро з'явиться керування даними.</p>
           </div>
         )}
       </main>
