@@ -23,7 +23,7 @@ flowchart LR
     end
 
     User -->|"сайт + /api/*"| Main
-    User -->|"/api/login, /api/register"| Auth
+    Main -->|"/api/login, /api/register"| Auth
     Main --- PgMain
     Auth --- PgAuth
     Main -. "валідує JWT, підписаний Auth" .-> Auth

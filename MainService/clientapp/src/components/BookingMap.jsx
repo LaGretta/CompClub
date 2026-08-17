@@ -18,7 +18,7 @@ const TARIFFS = [
 ];
 
 export default function BookingMap({ onRequireAuth }) {
-  const { isAuthenticated, balance, updateBalance } = useContext(AuthContext);
+  const { isAuthenticated, balance, refreshProfile } = useContext(AuthContext); // Тягнемо refreshProfile
   const { showToast } = useToast(); 
 
   const [computers, setComputers] = useState([]);
@@ -121,7 +121,7 @@ export default function BookingMap({ onRequireAuth }) {
 
     const totalCost = calculateTotal();
     
-    //ПЕРЕВІРКА БАЛАНСУ
+    // Перевірка балансу перед запитом
     if (balance < totalCost) {
       showToast('Недостатньо коштів на балансі! Поповніть рахунок у профілі.', 'error');
       return;
@@ -131,9 +131,7 @@ export default function BookingMap({ onRequireAuth }) {
     try {
       const { startTime, endTime } = getBookingTimes();
       
-      //ПЕРЕВІРКА НАКЛАДОК ЧАСУ
       const myBookings = await bookingsApi.getMy();
-      
       const hasOverlap = myBookings.some(b => {
         if (b.status !== 0) return false;
         const bStart = new Date(b.startTime);
@@ -147,10 +145,10 @@ export default function BookingMap({ onRequireAuth }) {
         return; 
       }
 
-      //БРОНЮВАННЯ ТА СПИСАННЯ КОШТІВ
       await bookingsApi.create(selected.id, startTime, endTime);
       
-      updateBalance(balance - totalCost);
+      // Бронювання пройшло на бекенді, тепер тягнемо новий баланс!
+      await refreshProfile();
       
       showToast('Успішно заброньовано! Кошти списано з балансу.', 'success');
       setSelected(null);
