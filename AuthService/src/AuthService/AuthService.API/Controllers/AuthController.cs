@@ -1,5 +1,6 @@
 ﻿
 using AuthService.API.Controllers.Extensions;
+using AuthService.Api.Requests;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Application.Tools;
 using AuthService.Domain.Requests.Auth;
@@ -139,6 +140,7 @@ public class AuthController: ControllerBase
         return Ok();
     }
     //
+    [HttpPost("balance")]
     public async Task<IActionResult> TransactionExecute([FromBody] TransactionExecuteRequest request, CancellationToken cancellationToken)
     {
         

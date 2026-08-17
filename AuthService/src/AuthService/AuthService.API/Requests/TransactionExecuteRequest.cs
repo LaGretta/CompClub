@@ -1,4 +1,4 @@
-﻿namespace DefaultNamespace;
+﻿namespace AuthService.Api.Requests;
 
 public class TransactionExecuteRequest
 {
