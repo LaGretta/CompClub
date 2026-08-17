@@ -134,6 +134,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssemblyContaining<LoginUserRequestValidator>();
         services.AddValidatorsFromAssemblyContaining<RegisterUserRequestValidator>();
         services.AddValidatorsFromAssemblyContaining<AvatarUploadValidator>();
+        services.AddValidatorsFromAssemblyContaining<TransactionExecuteValidator>();
 
         return services;
     }

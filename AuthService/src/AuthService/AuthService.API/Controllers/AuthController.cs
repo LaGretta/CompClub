@@ -1,5 +1,6 @@
 ﻿
 using AuthService.API.Controllers.Extensions;
+using AuthService.Api.Requests;
 using AuthService.Application.Services.Abstractions;
 using AuthService.Application.Tools;
 using AuthService.Domain.Requests.Auth;
@@ -133,6 +134,19 @@ public class AuthController: ControllerBase
         await _authService.DeleteAvatar(new()
         {
             HttpCookies = HttpContext.Request.GetCookies(),
+            
+        }, cancellationToken);
+        return Ok();
+    }
+    //
+    [HttpPost("balance")]
+    public async Task<IActionResult> TransactionExecute([FromBody] TransactionExecuteRequest request, CancellationToken cancellationToken)
+    {
+        
+        await _authService.TransactionExecute(new()
+        {
+            Value = request.Value,
+            HttpCookies = HttpContext.Request.GetCookies()
             
         }, cancellationToken);
         return Ok();
