@@ -75,25 +75,35 @@ export const promotionsApi = {
 // Юзери
 export const usersApi = {
   getMe: async () => {
-    const res = await fetch(`${API_BASE_URL}/users/me`, { headers: getHeaders(true) });
+    // Відправляємо GET-запит на /api/balance для отримання поточного балансу
+    const res = await fetch(`${API_BASE_URL}/balance`, { 
+      headers: getHeaders(true),
+      credentials: 'include' // Обов'язково для передачі Cookies на бекенд!
+    });
+    
     if (!res.ok) throw new Error('Не вдалося завантажити профіль');
     
-    // ДОДАНО ЗАХИСТ: Перевіряємо, чи сервер повернув JSON
+    // Перевіряємо, чи бекенд дійсно повернув JSON (якщо Данило вже зробив HttpGet)
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       return res.json();
     } else {
-      throw new Error("Ендпоінт /api/users/me ще не готовий на бекенді (повертає HTML замість JSON).");
+      throw new Error("Ендпоінт /api/balance (GET) ще не готовий на бекенді. Попросіть Данила його додати.");
     }
   },
   topUp: async (amount) => {
-    const res = await fetch(`${API_BASE_URL}/users/topup`, {
+    // Відправляємо POST-запит на /api/balance
+    const res = await fetch(`${API_BASE_URL}/balance`, {
       method: 'POST',
       headers: getHeaders(true),
-      body: JSON.stringify({ amount: Number(amount) })
+      credentials: 'include', // Обов'язково для передачі Cookies
+      body: JSON.stringify({ value: Number(amount) }) // Передаємо поле 'value', як просить TransactionExecuteRequest
     });
+    
     if (!res.ok) throw new Error('Помилка поповнення рахунку');
-    return res.json();
+    
+    // Данило повертає Ok() без JSON, тому ми просто повертаємо true
+    return true;
   }
 };
 

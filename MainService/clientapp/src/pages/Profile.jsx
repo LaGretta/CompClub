@@ -7,34 +7,23 @@ import { bookingsApi, usersApi } from '../services/api';
 
 const C = { yellow: '#facc15', muted: '#a1a1aa', border: '#3f3f46', bg: '#09090b', surface: '#121214', surfaceLight: '#18181b' };
 
-// Анімація для плавного збільшення числа балансу
 function useAnimatedBalance(targetValue, duration = 800) {
   const [displayValue, setDisplayValue] = useState(targetValue);
-
   useEffect(() => {
     let startTimestamp = null;
     const startValue = displayValue;
-
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const currentVal = Math.floor(startValue + (targetValue - startValue) * easeOut);
-      
       setDisplayValue(currentVal);
-
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      } else {
-        setDisplayValue(targetValue);
-      }
+      if (progress < 1) window.requestAnimationFrame(step);
+      else setDisplayValue(targetValue);
     };
-
     window.requestAnimationFrame(step);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetValue]);
-
   return displayValue;
 }
 
@@ -65,7 +54,6 @@ export default function Profile() {
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
-      
       await refreshProfile();
       showToast('Бронювання успішно скасовано! Кошти повернено.', 'success');
     } catch (e) {
@@ -80,9 +68,18 @@ export default function Profile() {
       const fetchMyBookings = async () => {
         try {
           const data = await bookingsApi.getMy();
-          setBookings(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+          
+          // Перевіряємо, чи повернув бекенд масив. Якщо ні (наприклад об'єкт чи помилку), ставимо пустий масив.
+          const bookingsArray = Array.isArray(data) ? data : (data?.data || []);
+          
+          if (Array.isArray(bookingsArray)) {
+            setBookings(bookingsArray.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+          } else {
+            setBookings([]);
+          }
         } catch (error) {
           console.error("Не вдалося завантажити бронювання", error);
+          setBookings([]);
         } finally {
           setIsLoadingBookings(false);
         }
@@ -174,8 +171,8 @@ export default function Profile() {
               <button 
                 onClick={async () => { 
                   try {
-                    await usersApi.topUp(500); // Поповнюємо на сервері
-                    await refreshProfile(); // Оновлюємо цифру в UI
+                    await usersApi.topUp(500); 
+                    await refreshProfile(); 
                     showToast('Баланс успішно поповнено на 500 ₴!', 'success');
                   } catch (e) {
                     showToast(e.message, 'error');
