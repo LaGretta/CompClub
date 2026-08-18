@@ -6,9 +6,9 @@ using Xunit;
 
 namespace AuthService.Application.Tests.Data;
 
-public class MemberCacheServiceTestData : TheoryData<QueryExecutionContext<User>>
+public class MemoryCacheServiceTestData : TheoryData<QueryExecutionContext<User>>
 {
-    public MemberCacheServiceTestData()
+    public MemoryCacheServiceTestData()
     {
         Add( new QueryExecutionContext<User>
              {

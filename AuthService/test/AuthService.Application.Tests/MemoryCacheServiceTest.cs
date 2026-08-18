@@ -13,7 +13,7 @@ namespace AuthService.Application.Tests;
 public class MemoryCacheServiceTest
 {
     [Theory]
-    [ClassData(typeof(MemberCacheServiceTestData))]
+    [ClassData(typeof(MemoryCacheServiceTestData))]
     public async Task GetOrCreateAsync_ShouldBeTwoCalls(QueryExecutionContext<User> context)
     {
         var options = Options.Create(new CacheOptions
@@ -68,7 +68,7 @@ public class MemoryCacheServiceTest
         count.Should().Be(2);
     }
     [Theory]
-    [ClassData(typeof(MemberCacheServiceTestData))]
+    [ClassData(typeof(MemoryCacheServiceTestData))]
     public async Task GetOrCreateAsync_ShouldBeOneCall(QueryExecutionContext<User> context)
     {
         var options = Options.Create(new CacheOptions
