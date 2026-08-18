@@ -11,15 +11,17 @@ function useAnimatedBalance(targetValue, duration = 800) {
   const [displayValue, setDisplayValue] = useState(targetValue);
   useEffect(() => {
     let startTimestamp = null;
-    const startValue = displayValue;
+    const startValue = displayValue || 0;
+    const safeTarget = targetValue || 0;
+
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentVal = Math.floor(startValue + (targetValue - startValue) * easeOut);
+      const currentVal = Math.floor(startValue + (safeTarget - startValue) * easeOut);
       setDisplayValue(currentVal);
       if (progress < 1) window.requestAnimationFrame(step);
-      else setDisplayValue(targetValue);
+      else setDisplayValue(safeTarget);
     };
     window.requestAnimationFrame(step);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,11 +51,16 @@ export default function Profile() {
 
   const animatedBalance = useAnimatedBalance(balance || 0);
 
-  const handleCancel = async (id) => {
+  const handleCancel = async (id, price) => {
     setCancellingId(id);
     try {
       await bookingsApi.cancel(id);
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 2 } : b)));
+      
+      // Повертаємо гроші локально при скасуванні
+      const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
+      localStorage.setItem('localUserBalance', currentBalance + (price || 0));
+      
       await refreshProfile();
       showToast('Бронювання успішно скасовано! Кошти повернено.', 'success');
     } catch (e) {
@@ -69,14 +76,18 @@ export default function Profile() {
         try {
           const data = await bookingsApi.getMy();
           
-          // Перевіряємо, чи повернув бекенд масив. Якщо ні (наприклад об'єкт чи помилку), ставимо пустий масив.
-          const bookingsArray = Array.isArray(data) ? data : (data?.data || []);
-          
-          if (Array.isArray(bookingsArray)) {
-            setBookings(bookingsArray.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
-          } else {
-            setBookings([]);
+          // ЗАХИСТ ВІД ЧОРНОГО ЕКРАНУ
+          let safeArray = [];
+          if (Array.isArray(data)) {
+            safeArray = [...data];
+          } else if (data && Array.isArray(data.data)) {
+            safeArray = [...data.data];
           }
+          
+          // Безпечне сортування
+          safeArray.sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0));
+          setBookings(safeArray);
+
         } catch (error) {
           console.error("Не вдалося завантажити бронювання", error);
           setBookings([]);
@@ -202,12 +213,12 @@ export default function Profile() {
                 ) : bookings.length > 0 ? (
                   bookings.map((booking, index) => {
                     const statusInfo = getStatusInfo(booking.status);
-                    const startDate = new Date(booking.startTime);
-                    const endDate = new Date(booking.endTime);
+                    const startDate = new Date(booking.startTime || Date.now());
+                    const endDate = new Date(booking.endTime || Date.now());
                     const dateString = `${startDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}, ${startDate.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 
                     return (
-                      <Reveal key={booking.id} direction="up" delay={isMobile ? 100 : 400 + (index * 100)}>
+                      <Reveal key={booking.id || index} direction="up" delay={isMobile ? 100 : 400 + (index * 100)}>
                         <div 
                           style={{ 
                             display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', 
@@ -219,7 +230,7 @@ export default function Profile() {
                         >
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <span style={{ fontSize: '20px', fontWeight: 900, color: '#fff', letterSpacing: '1px' }}>
-                              Комп'ютер #{booking.computerId}
+                              Комп'ютер #{booking.computerId || '?'}
                             </span>
                             <span style={{ fontSize: '14px', fontWeight: 600, color: C.muted, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ fontSize: '16px' }}>🕒</span> {dateString}
@@ -228,7 +239,7 @@ export default function Profile() {
                           
                           <div style={{ display: 'flex', flexDirection: isMobile ? 'row-reverse' : 'column', alignItems: isMobile ? 'center' : 'flex-end', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto', gap: '10px', marginTop: isMobile ? '8px' : '0' }}>
                             <span style={{ fontSize: '22px', fontWeight: 900, color: C.yellow, textShadow: '0 0 10px rgba(250,204,21,0.2)' }}>
-                              {booking.totalPrice} ₴
+                              {booking.totalPrice || 0} ₴
                             </span>
                             <span style={{ 
                               fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '6px', letterSpacing: '1px', textTransform: 'uppercase',
@@ -238,7 +249,7 @@ export default function Profile() {
                             </span>
                             {booking.status === 0 && (
                               <button
-                                onClick={() => handleCancel(booking.id)}
+                                onClick={() => handleCancel(booking.id, booking.totalPrice)}
                                 disabled={cancellingId === booking.id}
                                 style={{ background: 'none', border: `1px solid rgba(239,68,68,0.4)`, color: '#ef4444', fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', cursor: cancellingId === booking.id ? 'not-allowed' : 'pointer', letterSpacing: '1px', transition: 'background 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}

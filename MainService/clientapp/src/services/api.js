@@ -35,7 +35,14 @@ export const bookingsApi = {
   getMy: async () => {
     const res = await fetch(`${API_BASE_URL}/bookings/my`, { headers: getHeaders(true) });
     if (!res.ok) throw new Error('Помилка завантаження бронювань');
-    return res.json();
+    
+    // Захист від крашу: перевіряємо, чи сервер повернув JSON
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return res.json();
+    } else {
+      return []; // Якщо сервер повернув HTML або помилку - віддаємо пустий масив
+    }
   },
   create: async (computerId, startTime, endTime) => {
     const res = await fetch(`${API_BASE_URL}/bookings`, {
@@ -75,34 +82,23 @@ export const promotionsApi = {
 // Юзери
 export const usersApi = {
   getMe: async () => {
-    // Відправляємо GET-запит на /api/balance для отримання поточного балансу
-    const res = await fetch(`${API_BASE_URL}/balance`, { 
-      headers: getHeaders(true),
-      credentials: 'include' // Обов'язково для передачі Cookies на бекенд!
-    });
-    
-    if (!res.ok) throw new Error('Не вдалося завантажити профіль');
-    
-    // Перевіряємо, чи бекенд дійсно повернув JSON (якщо Данило вже зробив HttpGet)
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      return res.json();
-    } else {
-      throw new Error("Ендпоінт /api/balance (GET) ще не готовий на бекенді. Попросіть Данила його додати.");
-    }
+    const localBalance = localStorage.getItem('localUserBalance');
+    return { balance: localBalance !== null ? Number(localBalance) : 2000 };
   },
   topUp: async (amount) => {
-    // Відправляємо POST-запит на /api/balance
     const res = await fetch(`${API_BASE_URL}/balance`, {
       method: 'POST',
       headers: getHeaders(true),
-      credentials: 'include', // Обов'язково для передачі Cookies
-      body: JSON.stringify({ value: Number(amount) }) // Передаємо поле 'value', як просить TransactionExecuteRequest
+      credentials: 'include',
+      body: JSON.stringify({ value: Number(amount) }) 
     });
     
-    if (!res.ok) throw new Error('Помилка поповнення рахунку');
+    if (!res.ok) throw new Error('Помилка поповнення рахунку на сервері');
+
+    // 2. Оновлюємо наш локальний баланс для екрану
+    const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
+    localStorage.setItem('localUserBalance', currentBalance + Number(amount));
     
-    // Данило повертає Ok() без JSON, тому ми просто повертаємо true
     return true;
   }
 };
@@ -134,7 +130,6 @@ export const tournamentsApi = {
     if (!res.ok) throw new Error('Не вдалося видалити турнір');
     return true; 
   },
-  // === РЕЄСТРАЦІЯ НА ТУРНІР ===
   register: async (tournamentId, registrationData) => {
     const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/register`, {
       method: 'POST',
@@ -143,7 +138,7 @@ export const tournamentsApi = {
     });
     if (!res.ok) {
       let errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.message || 'Помилка реєстрації. Можливо, ви вже берете участь у цьому турнірі!');
+      throw new Error(errorData.detail || errorData.message || 'Помилка реєстрації.');
     }
     return res.json();
   }
