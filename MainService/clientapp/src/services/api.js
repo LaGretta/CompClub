@@ -36,30 +36,42 @@ export const bookingsApi = {
     return JSON.parse(localStorage.getItem('localBookings')) || [];
   },
   
-  create: async (computerId, startTime, endTime, price = 0) => {
+  create: async (computerId, startTime, endTime, providedPrice) => {
     const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
-    const finalPrice = price || 1000; 
+    let finalPrice = Number(providedPrice);
+    if (!finalPrice) {
+      const s = new Date(startTime);
+      const e = new Date(endTime);
+      let hours = Math.abs(e - s) / 36e5;
+      if (hours === 0 || isNaN(hours)) hours = 1;
+      let rate = 55;
+      const compStr = String(computerId).toUpperCase();
+      if (compStr.includes('VIP')) rate = 120;
+      else if (compStr.includes('PS5')) rate = 90;
+
+      finalPrice = Math.round(hours * rate);
+    }
 
     // Перевіряємо, чи вистачає грошей
     if (currentBalance < finalPrice) {
-      throw new Error('Недостатньо коштів на балансі!');
+      throw new Error(`Недостатньо коштів! Потрібно ${finalPrice} ₴.`);
     }
-
+    
     // Списуємо кошти локально
     localStorage.setItem('localUserBalance', (currentBalance - finalPrice).toString());
 
     // Створюємо нове бронювання
     const newBooking = {
       id: Date.now(),
-      computerId: Number(computerId) || 'PS5-03',
+      computerId: computerId || '1',
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
       totalPrice: finalPrice,
-      status: 0, // 0 - Активне
+      status: 0,
       createdAt: new Date().toISOString()
     };
 
-    // Зберігаємо бронювання
+    // Зберігаємо бронювання в браузері
     const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
     localBookings.push(newBooking);
     localStorage.setItem('localBookings', JSON.stringify(localBookings));
@@ -72,11 +84,8 @@ export const bookingsApi = {
     const booking = localBookings.find(b => b.id === bookingId);
     
     if (booking && booking.status === 0) {
-        // Змінюємо статус на "Скасовано"
         booking.status = 2; 
         localStorage.setItem('localBookings', JSON.stringify(localBookings));
-        
-        // Повертаємо гроші на баланс
         const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
         localStorage.setItem('localUserBalance', (currentBalance + booking.totalPrice).toString());
     }
