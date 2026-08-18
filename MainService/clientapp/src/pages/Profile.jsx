@@ -24,7 +24,6 @@ function useAnimatedBalance(targetValue, duration = 800) {
       else setDisplayValue(safeTarget);
     };
     window.requestAnimationFrame(step);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetValue]);
   return displayValue;
 }

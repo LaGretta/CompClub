@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Оновлює баланс напряму з сервера
+  // Оновлює баланс
   const refreshProfile = async () => {
     if (token) {
       try {
@@ -60,17 +60,16 @@ export const AuthProvider = ({ children }) => {
       setBalance(0);
       setIsAdmin(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName, token]);
   
   const login = (newToken, name = "Гравець") => {
     localStorage.setItem('token', newToken);
-    localStorage.setItem('userName', name); // Зберігаємо точний нікнейм з форми!
+    localStorage.setItem('userName', name);
     
     setToken(newToken);
     setUserName(name);
     setIsAuthenticated(true);
-    checkAdminRole(newToken); // Перевіряємо, чи цей юзер не адмін часом
+    checkAdminRole(newToken);
   };
 
   const updateAvatar = (newAvatarUrl) => {

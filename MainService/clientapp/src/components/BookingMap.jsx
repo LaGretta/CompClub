@@ -98,7 +98,6 @@ export default function BookingMap({ onRequireAuth }) {
 
   useEffect(() => {
     fetchAvailable();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tariff, hours]);
 
   const calculateTotal = () => {
@@ -146,8 +145,6 @@ export default function BookingMap({ onRequireAuth }) {
       }
 
       await bookingsApi.create(selected.id, startTime, endTime);
-      
-      // Бронювання пройшло на бекенді, тепер тягнемо новий баланс!
       await refreshProfile();
       
       showToast('Успішно заброньовано! Кошти списано з балансу.', 'success');

@@ -55,9 +55,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           const data = await response.json();
           
           let realName = data.userName || data.username || loginInput;
-
-          // === АГРЕСИВНЕ ВІДСІКАННЯ ПОШТИ ===
-          // Якщо в імені є символ '@', відрізаємо все, що після нього
           if (realName && typeof realName === 'string' && realName.includes('@')) {
             realName = realName.split('@')[0]; 
           }

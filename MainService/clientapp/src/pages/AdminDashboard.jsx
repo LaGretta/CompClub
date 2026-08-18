@@ -28,7 +28,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchTournaments();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTournaments = async () => {
@@ -189,7 +188,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* МОДАЛКА СТВОРЕННЯ ТУРНІРУ */}
+      {/*Модалка для створення турніру*/}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(9, 9, 11, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: C.surfaceLight, border: `1px solid ${C.yellow}`, borderRadius: '16px', width: '100%', maxWidth: '500px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', position: 'relative', overflow: 'hidden' }}>

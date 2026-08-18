@@ -25,7 +25,7 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       
-      {/* Контейнер для повідомлень (правий нижній кут) */}
+      {/* Контейнер для повідомлень*/}
       <div style={{
         position: 'fixed', bottom: '32px', right: '32px', zIndex: 9999,
         display: 'flex', flexDirection: 'column', gap: '16px', pointerEvents: 'none'
@@ -50,7 +50,7 @@ export const ToastProvider = ({ children }) => {
               boxShadow: `0 10px 30px rgba(0,0,0,0.5), 0 0 20px ${isError ? 'rgba(239,68,68,0.15)' : 'rgba(250,204,21,0.15)'}`,
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px',
               animation: 'slideInToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-              pointerEvents: 'auto' // Дозволяємо клікати на хрестик
+              pointerEvents: 'auto'
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <span style={{ fontSize: '20px', lineHeight: 1 }}>

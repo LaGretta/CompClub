@@ -30,7 +30,7 @@ export default function Navbar() {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1150); // Трохи збільшив брейкпоінт, щоб вмістити іконки
+      setIsMobile(window.innerWidth < 1150);
       if (window.innerWidth >= 1150) setIsMobileMenuOpen(false); 
     };
 
@@ -58,7 +58,7 @@ export default function Navbar() {
     }
   };
 
-  // Компонент іконок соцмереж, щоб не дублювати код
+  // Компонент іконок соцмереж
   const SocialIcons = () => (
     <div style={{ display: 'flex', gap: '8px' }}>
       {/* TELEGRAM */}
@@ -106,7 +106,6 @@ export default function Navbar() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                {/* БЛОК АВТОРИЗАЦІЇ */}
                 <div style={{ flexShrink: 0 }}>
                   {isAuthenticated ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -136,11 +135,7 @@ export default function Navbar() {
                     </button>
                   )}
                 </div>
-
-                {/* РОЗДІЛЮВАЧ */}
                 <div style={{ width: '1px', height: '30px', background: C.border }}></div>
-
-                {/* СОЦМЕРЕЖІ СХОВАЛИСЯ ТУТ */}
                 <SocialIcons />
               </div>
             </>
@@ -161,7 +156,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* ВИПАДАЮЧЕ МОБІЛЬНЕ МЕНЮ */}
+        {/*Випадаюче моб. меню*/}
         {isMobile && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
@@ -210,7 +205,7 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* СОЦМЕРЕЖІ У МОБІЛЬНОМУ МЕНЮ */}
+            {/*Соцмережі у моб. меню*/}
             <div style={{ marginTop: '16px' }}>
               <SocialIcons />
             </div>

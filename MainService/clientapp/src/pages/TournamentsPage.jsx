@@ -22,7 +22,6 @@ const DISCIPLINES = [
   { name: 'LEAGUE OF LEGENDS', logo: '/logo-lol.png' }
 ];
 
-// === ЖОРСТКО ЗАДАНІ ТУРНІРИ ===
 const INITIAL_TOURNAMENTS = [
   {
     id: 1,
@@ -71,7 +70,7 @@ const INITIAL_TOURNAMENTS = [
   }
 ];
 
-// === СПИСОК ТУРНІРІВ ===
+// Список турнірів
 const TournamentsList = ({ tournaments, onSelect }) => (
   <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 20px' }}>
     <Reveal direction="down">
@@ -142,7 +141,7 @@ const TournamentsList = ({ tournaments, onSelect }) => (
   </div>
 );
 
-// === ДЕТАЛЬНИЙ ПЕРЕГЛЯД ===
+// Детальний перегляд
 const TournamentDetail = ({ tournament, onBack }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -158,7 +157,6 @@ const TournamentDetail = ({ tournament, onBack }) => {
       </div>
 
       <Reveal direction="down">
-        {/* Шапка з великою обкладинкою гри */}
         <div style={{ 
           backgroundImage: `linear-gradient(to bottom, rgba(9, 9, 11, 0.2) 0%, rgba(9, 9, 11, 0.95) 100%), url(${tournament.image})`,
           backgroundSize: 'cover', backgroundPosition: 'center', padding: '80px 24px 60px', borderBottom: `1px solid ${C.border}`, marginTop: '-70px'
