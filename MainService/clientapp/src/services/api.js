@@ -26,7 +26,25 @@ export const computersApi = {
     const endDate = new Date(end).toISOString();
     const res = await fetch(`${API_BASE_URL}/computers/available?start=${startDate}&end=${endDate}`);
     if (!res.ok) throw new Error('Помилка перевірки доступності комп\'ютерів');
-    return res.json();
+    
+    let availableComputers = await res.json();
+    const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
+    const reqStart = new Date(start).getTime();
+    const reqEnd = new Date(end).getTime();
+
+    availableComputers = availableComputers.filter(comp => {
+      const isOccupiedLocally = localBookings.some(b => {
+        if (b.status !== 0) return false;
+        if (String(b.computerId) !== String(comp.id)) return false;
+        const bStart = new Date(b.startTime).getTime();
+        const bEnd = new Date(b.endTime).getTime();
+        return (reqStart < bEnd && reqEnd > bStart);
+      });
+
+      return !isOccupiedLocally;
+    });
+
+    return availableComputers;
   }
 };
 
@@ -39,6 +57,7 @@ export const bookingsApi = {
   create: async (computerId, startTime, endTime, providedPrice) => {
     const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
     let finalPrice = Number(providedPrice);
+    
     if (!finalPrice) {
       const s = new Date(startTime);
       const e = new Date(endTime);
@@ -57,7 +76,7 @@ export const bookingsApi = {
       throw new Error(`Недостатньо коштів! Потрібно ${finalPrice} ₴.`);
     }
     
-    // Списуємо кошти локально
+    // Списуємо кошти
     localStorage.setItem('localUserBalance', (currentBalance - finalPrice).toString());
 
     // Створюємо нове бронювання
@@ -71,7 +90,7 @@ export const bookingsApi = {
       createdAt: new Date().toISOString()
     };
 
-    // Зберігаємо бронювання в браузері
+    // Зберігаємо бронювання
     const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
     localBookings.push(newBooking);
     localStorage.setItem('localBookings', JSON.stringify(localBookings));

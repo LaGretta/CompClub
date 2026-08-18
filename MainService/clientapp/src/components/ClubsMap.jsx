@@ -141,7 +141,7 @@ export default function ClubsMap() {
               fontSize: '20px',
               fontWeight: 900,
               borderRadius: '12px',
-              cursor: 'pointer', /* Вказуємо, що це кнопка */
+              cursor: 'pointer', 
               boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
               letterSpacing: '1px',
               transition: 'all 0.2s ease-in-out',
