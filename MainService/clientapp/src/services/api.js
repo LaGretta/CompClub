@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE ?? '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE || 'https://optimistic-miracle-production-a31e.up.railway.app/api';
 
 const getHeaders = (requireAuth = false) => {
   const headers = { 'Content-Type': 'application/json' };
