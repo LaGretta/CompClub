@@ -33,21 +33,24 @@ export const computersApi = {
 // Бронювання
 export const bookingsApi = {
   getMy: async () => {
-    const res = await fetch(`${API_BASE_URL}/bookings/my`, { headers: getHeaders(true) });
+    const res = await fetch(`${API_BASE_URL}/bookings/my`, { 
+      headers: getHeaders(true),
+      credentials: 'include' // ФІКС: Тепер передаємо Cookies!
+    });
     if (!res.ok) throw new Error('Помилка завантаження бронювань');
     
-    // Захист від крашу: перевіряємо, чи сервер повернув JSON
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       return res.json();
     } else {
-      return []; // Якщо сервер повернув HTML або помилку - віддаємо пустий масив
+      return []; 
     }
   },
   create: async (computerId, startTime, endTime) => {
     const res = await fetch(`${API_BASE_URL}/bookings`, {
       method: 'POST',
       headers: getHeaders(true),
+      credentials: 'include', // ФІКС
       body: JSON.stringify({
         computerId: Number(computerId),
         startTime: new Date(startTime).toISOString(),
@@ -63,7 +66,8 @@ export const bookingsApi = {
   cancel: async (bookingId) => {
     const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
       method: 'POST',
-      headers: getHeaders(true)
+      headers: getHeaders(true),
+      credentials: 'include' // ФІКС
     });
     if (!res.ok) throw new Error('Не вдалося скасувати бронювання');
     return res.json();
@@ -79,7 +83,7 @@ export const promotionsApi = {
   }
 };
 
-// Юзери
+// Юзери (З ЛОКАЛЬНИМ БАЛАНСОМ)
 export const usersApi = {
   getMe: async () => {
     const localBalance = localStorage.getItem('localUserBalance');
@@ -95,7 +99,6 @@ export const usersApi = {
     
     if (!res.ok) throw new Error('Помилка поповнення рахунку на сервері');
 
-    // 2. Оновлюємо наш локальний баланс для екрану
     const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
     localStorage.setItem('localUserBalance', currentBalance + Number(amount));
     
@@ -114,6 +117,7 @@ export const tournamentsApi = {
     const res = await fetch(`${API_BASE_URL}/tournaments`, {
       method: 'POST',
       headers: getHeaders(true),
+      credentials: 'include', // ФІКС
       body: JSON.stringify(tournamentData)
     });
     if (!res.ok) {
@@ -125,7 +129,8 @@ export const tournamentsApi = {
   delete: async (id) => {
     const res = await fetch(`${API_BASE_URL}/tournaments/${id}`, {
       method: 'DELETE',
-      headers: getHeaders(true)
+      headers: getHeaders(true),
+      credentials: 'include' // ФІКС
     });
     if (!res.ok) throw new Error('Не вдалося видалити турнір');
     return true; 
@@ -134,6 +139,7 @@ export const tournamentsApi = {
     const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/register`, {
       method: 'POST',
       headers: getHeaders(true),
+      credentials: 'include', // ФІКС
       body: JSON.stringify(registrationData)
     });
     if (!res.ok) {
