@@ -9,6 +9,35 @@ const getHeaders = (requireAuth = false) => {
   return headers;
 };
 
+const getCurrentUser = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return 'guest';
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || 
+           payload.unique_name || 
+           payload.email || 
+           'user';
+  } catch (e) {
+    return 'user';
+  }
+};
+
+const getUserBalance = (username) => {
+  const balances = JSON.parse(localStorage.getItem('localBalances')) || {};
+  if (balances[username] === undefined) {
+    balances[username] = 2000;
+    localStorage.setItem('localBalances', JSON.stringify(balances));
+  }
+  return balances[username];
+};
+
+const setUserBalance = (username, amount) => {
+  const balances = JSON.parse(localStorage.getItem('localBalances')) || {};
+  balances[username] = amount;
+  localStorage.setItem('localBalances', JSON.stringify(balances));
+};
+
 // Комп'ютери
 export const computersApi = {
   getAll: async () => {
@@ -28,20 +57,21 @@ export const computersApi = {
     if (!res.ok) throw new Error('Помилка перевірки доступності комп\'ютерів');
     
     let availableComputers = await res.json();
+
     const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
     const reqStart = new Date(start).getTime();
     const reqEnd = new Date(end).getTime();
 
+    // Тут перевіряємо ВСІ бронювання. Якщо комп зайнятий кимось - він зайнятий для всіх!
     availableComputers = availableComputers.filter(comp => {
       const isOccupiedLocally = localBookings.some(b => {
-        if (b.status !== 0) return false;
-        if (String(b.computerId) !== String(comp.id)) return false;
+        if (b.status !== 0) return false; 
+        if (String(b.computerId) !== String(comp.id)) return false; 
         const bStart = new Date(b.startTime).getTime();
         const bEnd = new Date(b.endTime).getTime();
         return (reqStart < bEnd && reqEnd > bStart);
       });
-
-      return !isOccupiedLocally;
+      return !isOccupiedLocally; 
     });
 
     return availableComputers;
@@ -51,38 +81,51 @@ export const computersApi = {
 // Бронювання
 export const bookingsApi = {
   getMy: async () => {
-    return JSON.parse(localStorage.getItem('localBookings')) || [];
+    const currentUser = getCurrentUser();
+    const allBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
+    return allBookings.filter(b => b.owner === currentUser);
   },
   
   create: async (computerId, startTime, endTime, providedPrice) => {
-    const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
-    let finalPrice = Number(providedPrice);
+    const currentUser = getCurrentUser();
+    const currentBalance = getUserBalance(currentUser);
     
+    let actualHourlyRate = 55;
+    let compName = `Комп'ютер #${computerId}`;
+
+    try {
+      const compsRes = await fetch(`${API_BASE_URL}/computers`);
+      if (compsRes.ok) {
+        const comps = await compsRes.json();
+        const targetComp = comps.find(c => String(c.id) === String(computerId));
+        if (targetComp) {
+          actualHourlyRate = Number(targetComp.pricePerHour) || 55;
+          compName = targetComp.name; 
+        }
+      }
+    } catch(e) {}
+
+    let finalPrice = Number(providedPrice);
     if (!finalPrice) {
       const s = new Date(startTime);
       const e = new Date(endTime);
       let hours = Math.abs(e - s) / 36e5;
+      hours = Math.round(hours * 10) / 10;
       if (hours === 0 || isNaN(hours)) hours = 1;
-      let rate = 55;
-      const compStr = String(computerId).toUpperCase();
-      if (compStr.includes('VIP')) rate = 120;
-      else if (compStr.includes('PS5')) rate = 90;
-
-      finalPrice = Math.round(hours * rate);
+      finalPrice = Math.round(hours * actualHourlyRate);
     }
 
-    // Перевіряємо, чи вистачає грошей
     if (currentBalance < finalPrice) {
       throw new Error(`Недостатньо коштів! Потрібно ${finalPrice} ₴.`);
     }
     
-    // Списуємо кошти
-    localStorage.setItem('localUserBalance', (currentBalance - finalPrice).toString());
+    setUserBalance(currentUser, currentBalance - finalPrice);
 
-    // Створюємо нове бронювання
     const newBooking = {
       id: Date.now(),
+      owner: currentUser,
       computerId: computerId || '1',
+      computerName: compName,
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
       totalPrice: finalPrice,
@@ -90,7 +133,6 @@ export const bookingsApi = {
       createdAt: new Date().toISOString()
     };
 
-    // Зберігаємо бронювання
     const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
     localBookings.push(newBooking);
     localStorage.setItem('localBookings', JSON.stringify(localBookings));
@@ -99,14 +141,15 @@ export const bookingsApi = {
   },
   
   cancel: async (bookingId) => {
+    const currentUser = getCurrentUser();
     const localBookings = JSON.parse(localStorage.getItem('localBookings')) || [];
     const booking = localBookings.find(b => b.id === bookingId);
-    
-    if (booking && booking.status === 0) {
+  
+    if (booking && booking.status === 0 && booking.owner === currentUser) {
         booking.status = 2; 
         localStorage.setItem('localBookings', JSON.stringify(localBookings));
-        const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
-        localStorage.setItem('localUserBalance', (currentBalance + booking.totalPrice).toString());
+        const currentBalance = getUserBalance(currentUser);
+        setUserBalance(currentUser, currentBalance + booking.totalPrice);
     }
     
     return { success: true };
@@ -125,17 +168,14 @@ export const promotionsApi = {
 // Юзери та Баланс
 export const usersApi = {
   getMe: async () => {
-    const localBalance = localStorage.getItem('localUserBalance');
-    if (localBalance === null) {
-      localStorage.setItem('localUserBalance', '2000');
-      return { balance: 2000 };
-    }
-    return { balance: Number(localBalance) };
+    const currentUser = getCurrentUser();
+    return { balance: getUserBalance(currentUser) };
   },
   topUp: async (amount = 500) => {
-    const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
+    const currentUser = getCurrentUser();
+    const currentBalance = getUserBalance(currentUser);
     const newBalance = currentBalance + Number(amount);
-    localStorage.setItem('localUserBalance', newBalance.toString());
+    setUserBalance(currentUser, newBalance);
     return { success: true, balance: newBalance };
   }
 };
