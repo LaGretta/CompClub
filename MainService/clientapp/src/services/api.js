@@ -94,7 +94,8 @@ export const usersApi = {
       method: 'POST',
       headers: getHeaders(true),
       credentials: 'include',
-      body: JSON.stringify({ value: Number(amount) }) 
+      // ФІКС: Змінили value на Value, щоб C# бекенд Данила прийняв JSON
+      body: JSON.stringify({ Value: Number(amount) }) 
     });
     
     if (!res.ok) throw new Error('Помилка поповнення рахунку на сервері');
