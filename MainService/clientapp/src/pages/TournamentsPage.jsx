@@ -67,6 +67,51 @@ const INITIAL_TOURNAMENTS = [
     first: '15 000 ₴',
     second: '10 000 ₴',
     third: '5 000 ₴'
+  },
+  {
+    id: 4,
+    game: 'Valorant',
+    name: 'RADIANT CUP TERNOPIL',
+    date: '18.10.2026',
+    time: '10:00',
+    format: '5X5 MIX',
+    prize: '40 000 ₴',
+    image: GAME_PRESETS["Valorant"].bg,
+    fee: '450 ₴ з гравця',
+    bracket: 'Double Elimination',
+    first: '20 000 ₴',
+    second: '12 000 ₴',
+    third: '8 000 ₴'
+  },
+  {
+    id: 5,
+    game: 'War Thunder',
+    name: 'SKIES OF GLORY',
+    date: '25.10.2026',
+    time: '14:00',
+    format: '2X2',
+    prize: '15 000 ₴ + Орли',
+    image: GAME_PRESETS["War Thunder"].bg,
+    fee: '250 ₴ з гравця',
+    bracket: 'Single Elimination',
+    first: '8 000 ₴',
+    second: '5 000 ₴',
+    third: '2 000 ₴'
+  },
+  {
+    id: 6,
+    game: 'League of Legends',
+    name: 'HEXTECH BRAWL',
+    date: '01.11.2026',
+    time: '11:00',
+    format: '5X5 MIX',
+    prize: '45 000 ₴',
+    image: GAME_PRESETS["League of Legends"].bg,
+    fee: '500 ₴ з гравця',
+    bracket: 'Double Elimination',
+    first: '22 000 ₴',
+    second: '15 000 ₴',
+    third: '8 000 ₴'
   }
 ];
 
@@ -238,7 +283,7 @@ const TournamentDetail = ({ tournament, onBack }) => {
             <div style={{ color: '#e4e4e7', lineHeight: 1.8, fontSize: 16, background: 'rgba(9, 9, 11, 0.7)', backdropFilter: 'blur(12px)', padding: 40, borderRadius: 12, border: `1px solid ${C.border}` }}>
               <h3 style={{ color: '#fff', marginBottom: 20, fontSize: 24, fontWeight: 800 }}>Регламент турніру</h3>
               <p>1. Один гравець може перебувати лише в одній команді на конкретному турнірі.</p>
-              <p>2. Усі матчі проходять на базі кіберклубу на акаунтах FACEIT / Riot Games / Wargaming гравців.</p>
+              <p>2. Усі матчі проходять на базі кіберклубу на акаунтах FACEIT / Riot Games / Wargaming / Gaijin гравців.</p>
               <p>3. Використання будь-якого стороннього ПЗ, скриптів або макросів карається моментальною дискваліфікацією команди.</p>
               <p>4. Запізнення команди більше ніж на 15 хвилин від старту сітки призводить до технічної поразки.</p>
               <p>5. Учасники зобов'язані поводитися адекватно. Образи супротивників чи адміністрації призводять до штрафних санкцій.</p>
