@@ -35,7 +35,7 @@ export const bookingsApi = {
   getMy: async () => {
     const res = await fetch(`${API_BASE_URL}/bookings/my`, { 
       headers: getHeaders(true),
-      credentials: 'include' // ФІКС: Тепер передаємо Cookies!
+      credentials: 'include'
     });
     if (!res.ok) throw new Error('Помилка завантаження бронювань');
     
@@ -46,28 +46,37 @@ export const bookingsApi = {
       return []; 
     }
   },
-  create: async (computerId, startTime, endTime) => {
+  create: async (computerId, startTime, endTime, price = 0) => {
     const res = await fetch(`${API_BASE_URL}/bookings`, {
       method: 'POST',
       headers: getHeaders(true),
-      credentials: 'include', // ФІКС
+      credentials: 'include',
       body: JSON.stringify({
         computerId: Number(computerId),
         startTime: new Date(startTime).toISOString(),
         endTime: new Date(endTime).toISOString()
       })
     });
+    
     if (!res.ok) {
         let errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || errorData.message || 'Час зайнятий або недостатньо коштів.');
     }
-    return res.json();
+    
+    const data = await res.json();
+
+    // Списуємо кошти локально
+    const priceToDeduct = data.totalPrice || price || 0;
+    const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
+    localStorage.setItem('localUserBalance', Math.max(0, currentBalance - priceToDeduct));
+
+    return data;
   },
   cancel: async (bookingId) => {
     const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
       method: 'POST',
       headers: getHeaders(true),
-      credentials: 'include' // ФІКС
+      credentials: 'include'
     });
     if (!res.ok) throw new Error('Не вдалося скасувати бронювання');
     return res.json();
@@ -83,27 +92,22 @@ export const promotionsApi = {
   }
 };
 
-// Юзери (З ЛОКАЛЬНИМ БАЛАНСОМ)
+// Юзери та Баланс (Повністю через LocalStorage)
 export const usersApi = {
   getMe: async () => {
     const localBalance = localStorage.getItem('localUserBalance');
-    return { balance: localBalance !== null ? Number(localBalance) : 2000 };
+    if (localBalance === null) {
+      localStorage.setItem('localUserBalance', '2000');
+      return { balance: 2000 };
+    }
+    return { balance: Number(localBalance) };
   },
-  topUp: async (amount) => {
-    const res = await fetch(`${API_BASE_URL}/balance`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      credentials: 'include',
-      // ФІКС: Змінили value на Value, щоб C# бекенд Данила прийняв JSON
-      body: JSON.stringify({ Value: Number(amount) }) 
-    });
-    
-    if (!res.ok) throw new Error('Помилка поповнення рахунку на сервері');
-
+  topUp: async (amount = 500) => {
+    // Жодних запитів до сервера — чиста локальна магія
     const currentBalance = Number(localStorage.getItem('localUserBalance')) || 2000;
-    localStorage.setItem('localUserBalance', currentBalance + Number(amount));
-    
-    return true;
+    const newBalance = currentBalance + Number(amount);
+    localStorage.setItem('localUserBalance', newBalance.toString());
+    return { success: true, balance: newBalance };
   }
 };
 
@@ -118,7 +122,7 @@ export const tournamentsApi = {
     const res = await fetch(`${API_BASE_URL}/tournaments`, {
       method: 'POST',
       headers: getHeaders(true),
-      credentials: 'include', // ФІКС
+      credentials: 'include',
       body: JSON.stringify(tournamentData)
     });
     if (!res.ok) {
@@ -131,7 +135,7 @@ export const tournamentsApi = {
     const res = await fetch(`${API_BASE_URL}/tournaments/${id}`, {
       method: 'DELETE',
       headers: getHeaders(true),
-      credentials: 'include' // ФІКС
+      credentials: 'include'
     });
     if (!res.ok) throw new Error('Не вдалося видалити турнір');
     return true; 
@@ -140,7 +144,7 @@ export const tournamentsApi = {
     const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/register`, {
       method: 'POST',
       headers: getHeaders(true),
-      credentials: 'include', // ФІКС
+      credentials: 'include',
       body: JSON.stringify(registrationData)
     });
     if (!res.ok) {
