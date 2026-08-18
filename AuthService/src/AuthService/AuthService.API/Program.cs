@@ -55,7 +55,6 @@ if (app.Environment.IsDevelopment())
 }
 app.UseForwardedHeaders();//Forwarded Headers Middleware
 
-app.UseTestEndpoints();
 app.UseHttpsRedirection();
 
 app.UseCors(frontendCors);
